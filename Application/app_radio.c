@@ -217,13 +217,12 @@ void Radio_CMD_Deal(void)
 					f_para.mode = m_packet[FILE_MODE_IDX];
 					f_para.offset = m_packet[FILE_OFFSET_IDX]<<8|m_packet[FILE_OFFSET_IDX+1];
 					f_para.length = m_packet[FILE_LENGTH_IDX];
-					if(Read_Para(type,m_packet))
-						m_packet[RADIO_LENGTH_IDX] = 
+					if(true == Read_Para(type,m_packet))
+						{m_packet[RADIO_LENGTH_IDX] = CMD_FIX_LENGTH + f_para.length + PYLOAD_XOR_LENGTH;
 					else
-						m_packet[RADIO_LENGTH_IDX] = 
-						
+						m_packet[RADIO_LENGTH_IDX] = CMD_FIX_LENGTH;
 					break;
-				case FILE_CMD_
+				case FILE_CMD_WRITE://ÎÄ¼þÐ´Èë
 					
 			}				
 		}

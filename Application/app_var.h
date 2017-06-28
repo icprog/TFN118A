@@ -38,7 +38,6 @@ CODEPAGESIZE*CODESIZE即为ROM的大小,pg_size=1024,pg_num = 256,256KB的代码存储区，
 #define RAMTYPE_USER1										2
 #define RAMTYPE_USER2										3
 
-
 //射频频道和方向选择
 #define DATA_CHANNEL									0
 #define CONFIG_CHANNEL									1
@@ -59,6 +58,8 @@ CODEPAGESIZE*CODESIZE即为ROM的大小,pg_size=1024,pg_num = 256,256KB的代码存储区，
 #define RADIO_S0_DIR_Msk 0X01
 //LENGTH
 #define RADIO_LENGTH_IDX 1
+//XOR
+#define PYLOAD_XOR_LENGTH 1
 /********************************************
 							标签上报参数定义
 ********************************************/
