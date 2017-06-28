@@ -1,0 +1,266 @@
+#include "app_radio.h"
+
+//需要修改的参数
+#define win_interval 1//标签开接收窗口间隔
+//携带命令
+typedef enum
+{
+	WithoutCMD = 0,
+	WithCMD
+}CMD_Typedef;
+//携带接收窗
+typedef enum
+{
+	WithoutWin = 0,
+	WithWin
+}WIN_Typedef;
+
+
+
+extern uint8_t packet[PACKET_PAYLOAD_MAXSIZE];
+extern uint8_t DeviceID[4];
+extern uint8_t para_record[PARA_RECORD_LEN];
+
+extern uint8_t ActiveMode;//周期发送秒标志
+//射频接收发送完成
+uint8_t radio_rcvok = 0;
+uint8_t radio_sndok = 0;
+uint8_t m_packet[PACKET_PAYLOAD_MAXSIZE];
+//标签状态字
+uint8_t State_LP_Alarm;//低电报警
+uint8_t State_Key_Alram;//按键报警
+uint8_t State_WithSensor;
+//uint8_t State_WithWin;
+uint8_t State_Mode;//模式
+//传感数据
+uint8_t M_Seq;//消息序列号0~7
+
+void radio_pwr(uint8_t txpower);
+static void Radio_Period_Send(uint8_t cmdflag,uint8_t winflag);
+/*
+Description:射频启动
+Input:state :
+Output:无
+Return:无
+*/
+static void radio_on(void)
+{
+		xosc_hfclk_start();//外部晶振起振
+}
+/*
+Description:射频关闭
+Input:state :
+Output:无
+Return:无
+*/
+static void radio_off(void)
+{
+		xosc_hfclk_stop();
+}
+
+/*
+Description:射频选择
+Input:state :
+Output:无
+Return:无
+*/
+static void radio_select(uint8_t ch,uint8_t dir)
+{
+	uint8_t channel;
+	uint8_t ot;
+	radio_on();//开启晶振
+	channel = (ch == DATA_CHANNEL)?RADIO_CHANNEL_DATA:RADIO_CHANNEL_CONFIG;
+	if(dir == RADIO_TX)
+	{
+		radio_tx_carrier(RADIO_MODE_MODE_Nrf_1Mbit,channel);
+	}
+	else if(dir == RADIO_RX)
+	{
+		radio_rx_carrier(RADIO_MODE_MODE_Nrf_1Mbit,channel);
+	}
+}
+
+
+void Raio_Deal(void)
+{
+	static uint8_t wincount;
+//	static uint8_t cmd,page,idx;
+	UpdateRunPara();//更新内部参数-主要更新发射功率
+	wincount++;
+	if(wincount >= win_interval)
+	{
+		wincount = 0;
+		Radio_Period_Send(WithoutCMD,WithWin);//发送带接收窗口
+		radio_select(CONFIG_CHANNEL,RADIO_RX);
+	}
+	else
+	{
+		if(ActiveMode)
+			Radio_Period_Send(WithoutCMD,WithoutWin);//发送不带接收窗
+	}
+	
+}
+
+/***********************************************************
+Description:周期发送射频信息
+Input：	cmdflag - 命令返回 1：返回命令 0：常规发送
+				winflag - 是否携带窗口
+Output：无
+Return:无
+************************************************************/
+static void Radio_Period_Send(uint8_t cmdflag,uint8_t winflag)
+{
+	my_memset(packet,0,PACKET_PAYLOAD_MAXSIZE);
+	packet[RADIO_S0_IDX] = S0_DIR_UP;
+	packet[RADIO_LENGTH_IDX] = 0; //payload长度，后续更新
+	my_memcpy(packet+TAG_ID_IDX,DeviceID,4);//2~5标签ID
+	if(cmdflag)
+	{
+		
+	}
+	else
+	{
+		packet[TAG_STATE_IDX] |= State_LP_Alarm << TAG_LOWPWR_Pos;//低电指示
+		packet[TAG_STATE_IDX] |= State_Key_Alram << TAG_KEY_Pos;//按键指示
+		packet[TAG_STATE_IDX] |= State_WithSensor << TAG_WITHSENSOR_Pos;//传感指示
+		packet[TAG_STATE_IDX] |= winflag << TAG_WITHWIN_Pos;//接收窗指示
+		packet[TAG_STATE_IDX] |= State_Mode << TAG_MODE_Pos;//模式指示
+		packet[TAG_VERSION_IDX] |= TAG_HDVER_NUM << TAG_HDVERSION_POS;//硬件版本号
+		packet[TAG_VERSION_IDX] |= TAG_SFVER_NUM << TAG_SFVERSION_POS;//软件版本号
+		packet[TAG_STYPE_IDX] = TAG_SENSORTYPE_SchoolWatch;//标签类型
+		packet[TAG_SDATA_IDX] |= M_Seq << TAG_MSEQ_Pos;//传感数据
+		packet[RADIO_LENGTH_IDX] = TAG_SDATA_IDX ;//PAYLOAD长度
+		packet[TAG_SDATA_IDX+1] = Get_Xor(packet,TAG_SDATA_IDX+1);//S0+LENGTH+PAYLOAD
+	}
+	if(cmdflag)
+	{
+		radio_select(CONFIG_CHANNEL,RADIO_TX);
+	}
+	else
+	{
+		radio_select(DATA_CHANNEL,RADIO_TX);
+	}
+}
+
+/************************************************* 
+Description:射频功率选择
+Input:输入发射功率
+Output:无
+Return:无
+*************************************************/  
+void radio_pwr(uint8_t txpower)
+{
+	switch(txpower)
+	{
+		case TAGP_PWR_N30DBM:
+			NRF_RADIO->TXPOWER = (RADIO_TXPOWER_TXPOWER_Neg30dBm << RADIO_TXPOWER_TXPOWER_Pos);
+			break;
+		case TAGP_PWR_N20DBM:
+			NRF_RADIO->TXPOWER = (RADIO_TXPOWER_TXPOWER_Neg20dBm << RADIO_TXPOWER_TXPOWER_Pos);
+			break;
+		case TAGP_PWR_N16DBM:
+			NRF_RADIO->TXPOWER = (RADIO_TXPOWER_TXPOWER_Neg16dBm << RADIO_TXPOWER_TXPOWER_Pos);
+			break;
+		case TAGP_PWR_N12DBM:
+			NRF_RADIO->TXPOWER = (RADIO_TXPOWER_TXPOWER_Neg12dBm << RADIO_TXPOWER_TXPOWER_Pos);
+			break;
+		case TAGP_PWR_N8DBM:
+			NRF_RADIO->TXPOWER = (RADIO_TXPOWER_TXPOWER_Neg8dBm << RADIO_TXPOWER_TXPOWER_Pos);
+			break;
+		case TAGP_PWR_N4DBM:
+			NRF_RADIO->TXPOWER = (RADIO_TXPOWER_TXPOWER_Neg4dBm << RADIO_TXPOWER_TXPOWER_Pos);
+			break;
+		case TAGP_PWR_P0DBM:
+			NRF_RADIO->TXPOWER = (RADIO_TXPOWER_TXPOWER_0dBm << RADIO_TXPOWER_TXPOWER_Pos);
+			break;
+		case TAGP_PWR_P4DBM:
+			NRF_RADIO->TXPOWER = (RADIO_TXPOWER_TXPOWER_Pos4dBm << RADIO_TXPOWER_TXPOWER_Pos);
+			break;
+		default:
+			NRF_RADIO->TXPOWER = (RADIO_TXPOWER_TXPOWER_Pos4dBm << RADIO_TXPOWER_TXPOWER_Pos);
+			break;
+	}
+}
+
+/*
+Description:异或检查
+Input:src:原数组，长度
+Output:
+Return:无
+*/
+uint8_t Xor_Check(uint8_t *src,uint8_t size)
+{
+	uint8_t sum=0;
+	uint8_t i;
+	
+	for(i = 0;i<size;i++)
+	{
+		sum ^= src[i];
+	}
+	if(sum == 0)
+		return 1;
+	else
+		return 0;
+}
+
+void Radio_CMD_Deal(void)
+{
+	uint8_t cmd;
+	if(radio_rcvok)
+	{
+		if((packet[RADIO_S0_IDX]&RADIO_S0_DIR_Msk) == RADIO_S0_DIR_DOWN)
+		{
+			memccpy(m_packet,packet,packet[RADIO_LENGTH_IDX]+2)
+			switch(cmd)
+			{
+				case FILE_CMD_READ://文件读取
+					f_para.mode = m_packet[FILE_MODE_IDX];
+					f_para.offset = m_packet[FILE_OFFSET_IDX]<<8|m_packet[FILE_OFFSET_IDX+1];
+					f_para.length = m_packet[FILE_LENGTH_IDX];
+					if(Read_Para(type,m_packet))
+						m_packet[RADIO_LENGTH_IDX] = 
+					else
+						m_packet[RADIO_LENGTH_IDX] = 
+						
+					break;
+				case FILE_CMD_
+					
+			}				
+		}
+	}
+}
+/************************************************* 
+Description:RADIO中断处理程序
+Input:无
+Output:无
+Return:无
+*************************************************/  
+void RADIO_IRQHandler(void)
+{
+	if(NRF_RADIO->EVENTS_END)//EVENTS_END
+	{
+		NRF_RADIO->EVENTS_END = 0;
+		if(NRF_RADIO->STATE == RADIO_STATE_STATE_RxIdle)
+		{	
+			if(NRF_RADIO->CRCSTATUS == RADIO_CRCSTATUS_CRCSTATUS_CRCOk)
+			{
+				if(1 == Xor_Check(packet,packet[2]+2))
+				{
+					if(memcmp(DeviceID,packet + TAG_ID_IDX,4)== 00)
+					{
+						radio_rcvok= 1;
+					}	
+					else if(ID_BROADCAST_MBYTE == packet[TAG_ID_IDX])
+					{
+						
+					}
+				}
+
+			}
+		}
+		else if(NRF_RADIO->STATE == RADIO_STATE_STATE_TxIdle)
+		{
+			radio_sndok= 1;
+		}
+	}
+}
