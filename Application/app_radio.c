@@ -1,12 +1,13 @@
 #include "app_radio.h"
+#include "string.h" 
 
 //需要修改的参数
 #define win_interval 1//标签开接收窗口间隔
 //携带命令
 typedef enum
 {
-	WithoutCMD = 0,
-	WithCMD
+	WithoutCmd = 0,
+	WithCmd
 }CMD_Typedef;
 //携带接收窗
 typedef enum
@@ -34,9 +35,15 @@ uint8_t State_WithSensor;
 uint8_t State_Mode;//模式
 //传感数据
 uint8_t M_Seq;//消息序列号0~7
+//payload长度
+uint8_t payload_length;
+#define RADIO_RX_OT 	825
 
 void radio_pwr(uint8_t txpower);
 static void Radio_Period_Send(uint8_t cmdflag,uint8_t winflag);
+
+//文件操作
+File_Typedef f_para;//文件操作命令数据缓存
 /*
 Description:射频启动
 Input:state :
@@ -45,7 +52,7 @@ Return:无
 */
 static void radio_on(void)
 {
-		xosc_hfclk_start();//外部晶振起振
+	xosc_hfclk_start();//外部晶振起振
 }
 /*
 Description:射频关闭
@@ -55,7 +62,8 @@ Return:无
 */
 static void radio_off(void)
 {
-		xosc_hfclk_stop();
+	radio_disable();
+	xosc_hfclk_stop();
 }
 
 /*
@@ -67,9 +75,9 @@ Return:无
 static void radio_select(uint8_t ch,uint8_t dir)
 {
 	uint8_t channel;
-	uint8_t ot;
 	radio_on();//开启晶振
 	channel = (ch == DATA_CHANNEL)?RADIO_CHANNEL_DATA:RADIO_CHANNEL_CONFIG;
+	NRF_RADIO->DATAWHITEIV = channel;//数据白化
 	if(dir == RADIO_TX)
 	{
 		radio_tx_carrier(RADIO_MODE_MODE_Nrf_1Mbit,channel);
@@ -80,43 +88,55 @@ static void radio_select(uint8_t ch,uint8_t dir)
 	}
 }
 
-
+/*
+Description:射频周期发送
+Input:state :
+Output:无
+Return:无
+*/
 void Raio_Deal(void)
 {
 	static uint8_t wincount;
-//	static uint8_t cmd,page,idx;
+	uint32_t ot;
 	UpdateRunPara();//更新内部参数-主要更新发射功率
 	wincount++;
 	if(wincount >= win_interval)
 	{
 		wincount = 0;
-		Radio_Period_Send(WithoutCMD,WithWin);//发送带接收窗口
+		Radio_Period_Send(WithoutCmd,WithWin);//发送带接收窗口
 		radio_select(CONFIG_CHANNEL,RADIO_RX);
+		ot = RADIO_RX_OT;//接收窗时间
+		while(ot--)
+		{
+			if(radio_rcvok)
+				break;
+		}
 	}
 	else
 	{
 		if(ActiveMode)
-			Radio_Period_Send(WithoutCMD,WithoutWin);//发送不带接收窗
+			Radio_Period_Send(WithoutCmd,WithoutWin);//发送不带接收窗
 	}
-	
+	radio_off;
 }
 
 /***********************************************************
-Description:周期发送射频信息
+Description:周期发送射频信息,并等待发送完成
 Input：	cmdflag - 命令返回 1：返回命令 0：常规发送
 				winflag - 是否携带窗口
 Output：无
 Return:无
 ************************************************************/
-static void Radio_Period_Send(uint8_t cmdflag,uint8_t winflag)
+static void Radio_Period_Send(uint8_t cmdflag,uint8_t winflag,uint8_t packet_length)
 {
+	uint32_t ot = 0;
 	my_memset(packet,0,PACKET_PAYLOAD_MAXSIZE);
-	packet[RADIO_S0_IDX] = S0_DIR_UP;
+	packet[RADIO_S0_IDX] = RADIO_S0_DIR_UP;
 	packet[RADIO_LENGTH_IDX] = 0; //payload长度，后续更新
 	my_memcpy(packet+TAG_ID_IDX,DeviceID,4);//2~5标签ID
 	if(cmdflag)
 	{
-		
+		memcpy(packet,m_packet,packet_length,payload_length+PACKET_HEAD_LENGTH);
 	}
 	else
 	{
@@ -129,8 +149,9 @@ static void Radio_Period_Send(uint8_t cmdflag,uint8_t winflag)
 		packet[TAG_VERSION_IDX] |= TAG_SFVER_NUM << TAG_SFVERSION_POS;//软件版本号
 		packet[TAG_STYPE_IDX] = TAG_SENSORTYPE_SchoolWatch;//标签类型
 		packet[TAG_SDATA_IDX] |= M_Seq << TAG_MSEQ_Pos;//传感数据
-		packet[RADIO_LENGTH_IDX] = TAG_SDATA_IDX ;//PAYLOAD长度
-		packet[TAG_SDATA_IDX+1] = Get_Xor(packet,TAG_SDATA_IDX+1);//S0+LENGTH+PAYLOAD
+		payload_length = TAG_SDATA_IDX;//PAYLOAD长度 
+		packet[RADIO_LENGTH_IDX] = payload_length ;
+		packet[TAG_SDATA_IDX+1] = Get_Xor(packet,payload_length+1);//S0+max_length+PAYLOAD
 	}
 	if(cmdflag)
 	{
@@ -139,6 +160,12 @@ static void Radio_Period_Send(uint8_t cmdflag,uint8_t winflag)
 	else
 	{
 		radio_select(DATA_CHANNEL,RADIO_TX);
+	}
+	while(radio_sndok == 0)
+	{
+		ot++;
+		if(ot > RADIO_OVER_TIME)
+			break;
 	}
 }
 
@@ -202,31 +229,64 @@ uint8_t Xor_Check(uint8_t *src,uint8_t size)
 	else
 		return 0;
 }
-
-void Radio_CMD_Deal(void)
+/*
+Description:射频命令处理，放在中断函数中
+Input:src:
+Output:
+Return:无
+*/
+void Radio_Cmd_Deal(void)
 {
 	uint8_t cmd;
-	if(radio_rcvok)
-	{
+	payload_length = 0;
+	// if(radio_rcvok)
+	// {
+		
 		if((packet[RADIO_S0_IDX]&RADIO_S0_DIR_Msk) == RADIO_S0_DIR_DOWN)
 		{
-			memccpy(m_packet,packet,packet[RADIO_LENGTH_IDX]+2)
-			switch(cmd)
+			my_memcpy(m_packet,packet,packet[RADIO_LENGTH_IDX]+2);
+			if(memcmp(DeviceID,packet + TAG_ID_IDX,4)== 00)//点对点
 			{
-				case FILE_CMD_READ://文件读取
-					f_para.mode = m_packet[FILE_MODE_IDX];
-					f_para.offset = m_packet[FILE_OFFSET_IDX]<<8|m_packet[FILE_OFFSET_IDX+1];
-					f_para.length = m_packet[FILE_LENGTH_IDX];
-					if(true == Read_Para(type,m_packet))
-						{m_packet[RADIO_LENGTH_IDX] = CMD_FIX_LENGTH + f_para.length + PYLOAD_XOR_LENGTH;
-					else
-						m_packet[RADIO_LENGTH_IDX] = CMD_FIX_LENGTH;
-					break;
-				case FILE_CMD_WRITE://文件写入
-					
-			}				
+				cmd = m_packet[CMD_IDX];
+				switch(cmd)
+				{
+					case FILE_CMD_READ://文件读取-点对点
+						f_para.mode = m_packet[FILE_MODE_IDX];
+						f_para.offset = m_packet[FILE_OFFSET_IDX]<<8|m_packet[FILE_OFFSET_IDX+1];
+						f_para.length = m_packet[FILE_LENGTH_IDX];
+						if(TRUE == Read_Para(f_para,m_packet))
+						{
+							payload_length = CMD_FIX_LENGTH + f_para.length;
+						}
+						else//只返回执行状态
+						{
+							payload_length = CMD_FIX_LENGTH;
+						}
+						m_packet[RADIO_LENGTH_IDX] = payload_length;
+						m_packet[payload_length+PACKET_HEAD_LENGTH-1]=Get_Xor(m_packet,payload_length+1);
+						Radio_Period_Send(WithCmd,WithoutWin);
+						break;
+					case FILE_CMD_WRITE://文件写入-点对点
+						f_para.mode = m_packet[FILE_MODE_IDX];
+						f_para.offset = m_packet[FILE_OFFSET_IDX]<<8|m_packet[FILE_OFFSET_IDX+1];
+						f_para.length = m_packet[FILE_LENGTH_IDX];
+						Write_Para(f_para,m_packet);
+						payload_length = CMD_FIX_LENGTH;
+						m_packet[RADIO_LENGTH_IDX] = payload_length;
+						m_packet[payload_length+PACKET_HEAD_LENGTH-1]=Get_Xor(m_packet,payload_length+1);
+						Radio_Period_Send(WithCmd,WithoutWin);
+						break;
+					default:break;
+						
+				}							
+			}
+			else if(ID_BROADCAST_MBYTE == packet[TAG_ID_IDX])//广播
+			{
+				
+			}
+
 		}
-	}
+	// }
 }
 /************************************************* 
 Description:RADIO中断处理程序
@@ -245,21 +305,17 @@ void RADIO_IRQHandler(void)
 			{
 				if(1 == Xor_Check(packet,packet[2]+2))
 				{
-					if(memcmp(DeviceID,packet + TAG_ID_IDX,4)== 00)
-					{
-						radio_rcvok= 1;
-					}	
-					else if(ID_BROADCAST_MBYTE == packet[TAG_ID_IDX])
-					{
-						
-					}
+					Radio_Cmd_Deal();//命令处理
+					radio_rcvok= 1;
 				}
 
 			}
+			NRF_RADIO->TASKS_START = 1U;//重新启动射频
 		}
 		else if(NRF_RADIO->STATE == RADIO_STATE_STATE_TxIdle)
 		{
 			radio_sndok= 1;
 		}
 	}
+	
 }

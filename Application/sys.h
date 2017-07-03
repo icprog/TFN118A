@@ -2,7 +2,9 @@
 #define __SYS_H	
 #include "nrf.h"
 
-
+#define TRUE 1
+#define FALSE 0
+#define NULL 0
 typedef uint32_t  u32;
 typedef uint16_t u16;
 typedef uint8_t  u8;
@@ -17,6 +19,6 @@ typedef __IO uint8_t  vu8;
 
 void copybuf(u8 *dest,const u8 *str,u16 size);
 void my_memset(u8 *dest,u8 ch,u16 size);
-void my_memcpy(u8 *dest,const u8 * src,u16 size);
+void *my_memcpy(void* dest,const void* src,u16 size);
 uint8_t Get_Xor(u8 *src,u16 size);
 #endif

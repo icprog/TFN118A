@@ -16,13 +16,21 @@ Input:state :
 Output:
 Return:нч
 */
-void my_memcpy(u8 *dest,const u8 * src,u16 size)
+//void my_memcpy(u8 *dest,const u8 * src,u16 size)
+//{
+//	u16 i;
+//	for(i = 0 ; i < size ; i++)
+//	{
+//		*(dest+i) = *(src+i);
+//	}
+//}
+void *my_memcpy(void* dest,const void* src,u16 size)
 {
-	u16 i;
-	for(i = 0 ; i < size ; i++)
-	{
-		*(dest+i) = *(src+i);
-	}
+	char *tmp = dest;
+	const char *s = src;
+	while(size--)
+		*tmp++ = *s++;
+	return dest;
 }
 
 /*

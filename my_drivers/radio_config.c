@@ -16,7 +16,7 @@
  
 #include "radio_config.h"
 //#include "nrf_delay.h"
-extern const uint8_t  para_default[RECORD_LEN];
+//extern const uint8_t  para_default[RECORD_LEN];
 #define SHORTCUT_EN 0
 #define RSSI_EN 1
 /* These are set to zero as Shockburst packets don't have corresponding fields. */
@@ -54,33 +54,33 @@ void radio_configure()
 {
     // Radio config
     // Radio address config
-		//LOGIC0:0xE7E7E7E7E7         LOGIC1:0xC200C2C2C2
-		//LOGIC2:0xC300C2C2C2         LOGIC3:0xC400C2C2C2
-		//LOGIC4:0xC800C2C2C2         LOGIC5:0xC700C2C2C2
-		//LOGIC6:0xC600C2C2C2         LOGIC7:0xC500C2C2C2
+	//LOGIC0:0xE7E7E7E7E7         LOGIC1:0xC200C2C2C2
+	//LOGIC2:0xC300C2C2C2         LOGIC3:0xC400C2C2C2
+	//LOGIC4:0xC800C2C2C2         LOGIC5:0xC700C2C2C2
+	//LOGIC6:0xC600C2C2C2         LOGIC7:0xC500C2C2C2
     //通过以下配置，我们得到的逻辑地址即8个通道的地址分别为以上8个地址，
-    NRF_RADIO->PREFIX0 = 0xC4C3C200|RADIO_ADDRESS_H;  // 逻辑地址 // Prefix byte of addresses 3 to 0
-	  NRF_RADIO->PREFIX1 = 0xC5C6C7C8UL;  // Prefix byte of addresses 7 to 4
-	  NRF_RADIO->BASE0   = RADIO_ADDRESS_L;  // 逻辑地址// Base address for prefix 0
-    NRF_RADIO->BASE1   = 0x43434343UL;  // 逻辑地址设定 // Base address for prefix 1-7
-	  //本射频协议使用通道0传输数据，即地址为0xE7E7E7E7E7
-    NRF_RADIO->TXADDRESS   = 0x00UL;      // Set device address 0 to use when transmitting
-    NRF_RADIO->RXADDRESSES = 0x01UL;    // Enable device address 0 to use to select which addresses to receive
+    NRF_RADIO->PREFIX0 = 0xC4C3C200|RADIO_ADDRESS_H;// 逻辑地址 // Prefix byte of addresses 3 to 0
+	NRF_RADIO->PREFIX1 = 0xC5C6C7C8UL;//Prefix byte of addresses 7 to 4
+	NRF_RADIO->BASE0   = RADIO_ADDRESS_L;//逻辑地址// Base address for prefix 0
+    NRF_RADIO->BASE1   = 0x43434343UL;//逻辑地址设定 // Base address for prefix 1-7
+	//本射频协议使用通道0传输数据，即地址为0xE7E7E7E7E7
+    NRF_RADIO->TXADDRESS   = 0x00UL;//Set device address 0 to use when transmitting
+    NRF_RADIO->RXADDRESSES = 0x01UL;//Enable device address 0 to use to select which addresses to receive
 
     // Packet configuration
-	  //设置S1长度
-	  //设置S0长度
-		//设置LENGTH的长度
-	  //设置这三个域的长度都为0
+	//设置S1长度
+	//设置S0长度
+	//设置LENGTH的长度
+	//设置这三个域的长度都为0
     NRF_RADIO->PCNF0 = (PACKET_S1_FIELD_SIZE     << RADIO_PCNF0_S1LEN_Pos) |
                        (PACKET_S0_FIELD_SIZE     << RADIO_PCNF0_S0LEN_Pos) |
                        (PACKET_LENGTH_FIELD_SIZE << RADIO_PCNF0_LFLEN_Pos); //lint !e845 "The right argument to operator '|' is certain to be 0"
 
     // Packet configuration
-		//不使能数据加噪
-		//数据高位在先
-		//静态地址为4，意味着比LENGTH filed所定义的包长度多四
-		//PAYLOAD最大长度为32
+	//不使能数据加噪
+	//数据高位在先
+	//静态地址为4，意味着比LENGTH filed所定义的包长度多四
+	//PAYLOAD最大长度为32
     NRF_RADIO->PCNF1 = (RADIO_PCNF1_WHITEEN_Disabled << RADIO_PCNF1_WHITEEN_Pos) |    
                        (RADIO_PCNF1_ENDIAN_Big       << RADIO_PCNF1_ENDIAN_Pos)  |
                        (PACKET_BASE_ADDRESS_LENGTH   << RADIO_PCNF1_BALEN_Pos)   |
@@ -95,7 +95,7 @@ void radio_configure()
 //										(RADIO_SHORTS_DISABLED_TXEN_Enabled << RADIO_SHORTS_DISABLED_TXEN_Pos);
 #endif
 		//数据白化
-		NRF_RADIO->DATAWHITEIV = 0X0A;
+	// NRF_RADIO->DATAWHITEIV = 0X0A;
     // CRC Config
     NRF_RADIO->CRCCNF = (RADIO_CRCCNF_LEN_Two << RADIO_CRCCNF_LEN_Pos); // Number of checksum bits
     if ((NRF_RADIO->CRCCNF & RADIO_CRCCNF_LEN_Msk) == (RADIO_CRCCNF_LEN_Two << RADIO_CRCCNF_LEN_Pos))
@@ -204,10 +204,10 @@ void radio_rx_carrier(uint8_t mode, uint8_t channel)
     radio_disable();
     NRF_RADIO->SHORTS     = RADIO_SHORTS_READY_START_Msk;//开启快捷方式，自动启动START任务
 #if RSSI_EN==1
-		NRF_RADIO->SHORTS |= RADIO_SHORTS_ADDRESS_RSSISTART_Msk;
+	NRF_RADIO->SHORTS |= RADIO_SHORTS_ADDRESS_RSSISTART_Msk;
 #endif
     NRF_RADIO->FREQUENCY  = channel;
-		NRF_RADIO->MODE       = (mode << RADIO_MODE_MODE_Pos);
+	NRF_RADIO->MODE       = (mode << RADIO_MODE_MODE_Pos);
     NRF_RADIO->TASKS_RXEN = 1;
 //		radio_status = RADIO_STATUS_RX;
 }
