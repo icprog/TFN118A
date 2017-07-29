@@ -40,7 +40,7 @@ uint8_t State_Mode;//模式
 //传感数据
 extern MSG_Store_Typedef MSG_Store;//消息定义消息序列号0~7
 
-#define RADIO_RX_OT_CONST 	825
+#define RADIO_RX_OT_CONST 	1000
 #define RADIO_MESSAGE_OT    2000
 uint32_t RADIO_RX_OT = RADIO_RX_OT_CONST;
 void radio_pwr(uint8_t txpower);
@@ -123,11 +123,13 @@ void Message_Radio_Rx(uint8_t times)
 			if(0 ==  times)
 			{
 				Radio_Work_Mode = Stand_Send;//超时，退出
+				debug_printf("\r\n接收超时");
 			}
 			else
 			{
 				ot = RADIO_MESSAGE_OT;//接收窗时间
 				Radio_Period_Send(WithCmd,WithWin);//重传命令
+				debug_printf("\r\n重传命令%d",times);
 				times--;
 			}
 			
@@ -160,7 +162,14 @@ void Raio_Deal(void)
 		{
 			if(radio_rcvok)
 				break;
+				
 		}
+		#ifdef LOG_ON
+		if(0 == ot)
+		{
+			debug_printf("\r\n接收超时");
+		}
+		#endif
 	}
 	else
 	{
@@ -397,6 +406,7 @@ void Radio_RX_Deal(void)
 		else if( RADIO_RUN_CONFIG_CHANNEL == radio_run_channel)
 		{
 			radio_rcvok= 1;
+			debug_printf("\r\n射频配置通道接收成功");
 		}
 	}
 }
@@ -431,7 +441,6 @@ void RADIO_IRQHandler(void)
 		}
 		else if(NRF_RADIO->STATE == RADIO_STATE_STATE_TxIdle)
 		{
-
 			tx_cnt++;
 			radio_sndok= 1;
 		}

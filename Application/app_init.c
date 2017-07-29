@@ -387,7 +387,7 @@ void app_init(void)
 	#ifdef LOG_ON
 	debug_log_init();
 	#endif
-	debug_printf("TFN118A Start\r\n");
+	debug_printf("TFN118A Start初始化\r\n");
 	SystemParaInit();
 	motor_init();//震动电机初始化	
 	Radio_Init();//射频初始化
