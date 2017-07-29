@@ -223,7 +223,6 @@ u16 Message_Deal(uint8_t *p_mpacket)
 			MSG_Store.MSG_Seq = ((p_mpacket[MSG_HEAD_IDX] &MSG_SEQ_Msk)>>MSG_SEQ_Pos);//更新包序号
 			MSG_Store.MSG_BUFF[MSG_SEQ_IDX] = MSG_Store.MSG_Seq;//存储包序号
 			MSG_Store.MSG_BUFF[MSG_LEN_IDX] = MSG_Store.MSG_BUFF_IDX - 1;//MSG_BUFF_IDX+1-2
-			MSG_Store.MSG_IDX = (MSG_Store.MSG_IDX + 1)%MSG_FLASH_NUM;//索引号+1//0~2之间循环
 			MSG_Write(MSG_Store.MSG_IDX,MSG_Store.MSG_BUFF);
 			cmd_state = MSG_START_END_VALUE;
 			return cmd_state;
@@ -248,7 +247,7 @@ uint8_t Message_Get(uint8_t tag_msg_seq)
 	if(tag_msg_seq!=MSG_Store.MSG_Seq)
 	{
 		Diff = ((MSG_Store.MSG_Seq + MSG_SEQ_MAX_NUM - tag_msg_seq)%MSG_SEQ_MAX_NUM);
-		Msg_Packet.MSG_PUSH_SEQ = (Diff>MSG_FLASH_NUM)?((MSG_Store.MSG_Seq + MSG_SEQ_MAX_NUM - MSG_FLASH_NUM -1)%8)://消息序号想减大于3，则读写器序号减去2
+		Msg_Packet.MSG_PUSH_SEQ = (Diff>MSG_FLASH_NUM)?((MSG_Store.MSG_Seq + MSG_SEQ_MAX_NUM - MSG_FLASH_NUM +1)%8)://消息序号想减大于3，则读写器序号减去2
 		(tag_msg_seq + MSG_SEQ_MAX_NUM + 1)%8;//消息序号小于3，则序号为标签消息序号+1
 		for(i=0;i<MSG_SEQ_MAX_NUM;i++)
 		{
