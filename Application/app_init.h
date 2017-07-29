@@ -6,8 +6,18 @@
 #include "radio_config.h"
 
 //io定义
+
+//串口定义
+#define RX_PIN_NUMBER  11    // UART RX pin number.
+#define TX_PIN_NUMBER 9   // UART TX pin number.
+#define CTS_PIN_NUMBER 6   // UART Clear To Send pin number. Not used if HWFC is set to false
+#define RTS_PIN_NUMBER 7    // Not used if HWFC is set to false 
+#define HWFC           false // UART hardware flow control
+
+
 #ifdef TFN118A
 
+	
 #define Motor_Pin_Num 16
 #define Motor_Run() do{NRF_GPIO->OUTSET = (1 << Motor_Pin_Num);}while(0)
 #define Motor_Stop() do{NRF_GPIO->OUTCLR = (1 << Motor_Pin_Num);}while(0)
@@ -68,6 +78,7 @@ typedef enum
 #define RTC0_PRIORITY		APP_IRQ_PRIORITY_HIGHEST
 #define PORT_PRIORITY    	APP_IRQ_PRIORITY_HIGH
 #define RTC1_PRIORITY		APP_IRQ_PRIORITY_HIGHEST
+#define UART0_PRIORITY     	APP_IRQ_PRIORITY_HIGH
 
 //ext function
 extern void rtc0_init(void);//1s定时，用来时间定时和射频周期发送
@@ -75,6 +86,7 @@ extern void rtc_update_interval(void);//增加随机时间
 extern void xosc_hfclk_start(void);//射频发送，需要启动外部16M晶振
 extern void xosc_hfclk_stop(void);//停止射频发送时，关闭外部晶振
 extern void app_init(void);//硬件初始化
+void UART_Init(void);
 #ifdef TFN118A
 extern u8 battery_check_read(void);
 extern void motor_run_state(u8 state);//振动马达状态

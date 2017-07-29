@@ -1,6 +1,7 @@
 #include "app_radio.h"
 #include "string.h" 
 #include "app_msg.h"
+#include "Debug_log.h"
 //需要修改的参数
 #define win_interval 3//标签开接收窗口间隔
 //携带命令
@@ -351,6 +352,7 @@ void Radio_Cmd_Deal(void)
 							cmd_packet.packet[RADIO_LENGTH_IDX] = cmd_packet.length;
 							cmd_packet.packet[cmd_packet.length+RADIO_HEAD_LENGTH-1]=Get_Xor(cmd_packet.packet,cmd_packet.length+1);							
 							Radio_Period_Send(WithCmd,WithWin);
+							debug_printf("成功接收消息下发通知命令");
 						}
 						else
 						{
@@ -363,7 +365,10 @@ void Radio_Cmd_Deal(void)
 							cmd_packet.packet[cmd_packet.length+RADIO_HEAD_LENGTH-1]=Get_Xor(cmd_packet.packet,cmd_packet.length+1);
 							Radio_Period_Send(WithCmd,WithWin);
 							if(cmd_state == MSG_START_END_VALUE)//消息接收完成
+							{
 								Radio_Work_Mode = Stand_Send;
+								debug_printf("\r\n消息接收完成");
+							}
 						}
 				}							
 			}

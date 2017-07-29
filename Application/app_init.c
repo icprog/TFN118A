@@ -1,6 +1,7 @@
 
 #include "app_init.h"
-
+#include "simple_uart.h"
+#include "Debug_log.h"
 #define rtc_interval 1  //单位s
 #define rtc_base ((32768*rtc_interval) - 1)
 
@@ -360,7 +361,20 @@ static void io_interrupt_config(void)
 	NVIC_EnableIRQ(GPIOTE_IRQn);
 }
 
-
+/*
+@Description:串口初始化
+@Input:无
+@Output:无
+@Return:无
+*/
+void UART_Init(void)
+{
+    simple_uart_config(RTS_PIN_NUMBER, TX_PIN_NUMBER, CTS_PIN_NUMBER, RX_PIN_NUMBER, HWFC);  
+	NRF_UART0->INTENSET = (UART_INTENSET_RXDRDY_Enabled << UART_INTENSET_RXDRDY_Pos)
+						|(UART_INTENSET_ERROR_Enabled << UART_INTENSET_ERROR_Pos);
+	NVIC_SetPriority(UART0_IRQn, UART0_PRIORITY);
+    NVIC_EnableIRQ(UART0_IRQn);
+}
 
 /************************************************* 
 Description:app初始化
@@ -370,6 +384,10 @@ Return:无
 *************************************************/ 
 void app_init(void)
 {
+	#ifdef LOG_ON
+	debug_log_init();
+	#endif
+	debug_printf("TFN118A Start\r\n");
 	SystemParaInit();
 	motor_init();//震动电机初始化	
 	Radio_Init();//射频初始化

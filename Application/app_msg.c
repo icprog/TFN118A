@@ -16,6 +16,7 @@
 #include "sys.h"
 #include "nrf_nvmc.h"
 #include "string.h"
+#include "Debug_log.h"
 extern Payload_Typedef cmd_packet;//命令射频处理
 extern uint8_t DeviceID[4];
 MSG_Store_Typedef MSG_Store;
@@ -179,6 +180,7 @@ u16 MessageHeadCheck(uint8_t msg_head)
 	{
 		if(pkt_end)//一包数据未传完
 		{
+			debug_printf("\r\n接收包%d",pkt_sq);
 			Msg_Packet.msg_pkt_seq++;
 			if(Msg_Packet.msg_pkt_seq>pkt_seq3)
 				Msg_Packet.msg_pkt_seq = pkt_seq0;
@@ -225,6 +227,7 @@ u16 Message_Deal(uint8_t *p_mpacket)
 			MSG_Store.MSG_BUFF[MSG_LEN_IDX] = MSG_Store.MSG_BUFF_IDX - 1;//MSG_BUFF_IDX+1-2
 			MSG_Write(MSG_Store.MSG_IDX,MSG_Store.MSG_BUFF);
 			cmd_state = MSG_START_END_VALUE;
+			debug_printf("\r\n包接收完成");
 			return cmd_state;
 		}
 		cmd_state = (p_mpacket[MSG_HEAD_IDX]<<8)|0x00;
