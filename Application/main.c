@@ -1,71 +1,115 @@
 #include "app_init.h"
-#include "radio_config.h"
-uint8_t ucFlag_RTC;
+#include "nrf_delay.h"
+#include "oled.h"
+#include "lis3dh.h"
+#include "app_key.h"
+#include "rtc.h"
+#include "app_radio.h"
+extern uint8_t rtc_flag;//定时，射频发送
 
 
-#define RADIO_BUFFER_SIZE 32
 
-
-
-void RTC0_IRQHandler(void)
+uint8_t rtc0_cnt;//定时器计数
+#define bat_chr_cycle 1 //1s采集一次
+#define bat_cycle 60 //60s采集一次
+extern bat_typedef battery;
+/************************************************* 
+@Description:硬件功能测试
+@Input:无
+@Output:
+@Return:无
+*************************************************/ 
+#define TEST 0
+#if TEST
+void function_test(void)
 {
-	if(NRF_RTC0->EVENTS_COMPARE[0])
-	{
-		NRF_RTC0->EVENTS_COMPARE[0]=0UL;	//clear event
-		NRF_RTC0->TASKS_CLEAR=1UL;	//clear count
-		rtc_update_interval();
-		ucFlag_RTC=1;
-	}
-}
 
+//	Motor_Run();
+//	nrf_delay_ms(250);
+//	Motor_Stop();
+	OLED_Init();
+//	lis3dhInit();
+	nrf_delay_ms(1000);
+	RTC_Time_Set(0,1);
 	
-
-/****************************************
-函数：清除射频缓冲区
-输入：无
-输出：无
-****************************************/
-void ClearRadioBuffer(uint8_t* pdata)
-{
-	uint8_t i;
-	for(i = 0;i<RADIO_BUFFER_SIZE;i++)
+	while(1)
 	{
-		pdata[i] = 0;
+		OLED_Test();
+		Key_Deal();
+		nrf_delay_ms(1000);
+		battery.bat_capacity = battery_check_read();	
 	}
 }
+#endif
 
+#if TFN118A
+/************************************************* 
+@Description:电量采集
+@Input:无
+@Output:
+@Return:无
+*************************************************/ 
+void Bat_Detect(void)
+{
+	if(battery.CHR_Flag)//充电电量采集周期
+	{
+		if(rtc0_cnt > bat_chr_cycle )
+		{
+			battery.bat_capacity = battery_check_read();
+			rtc0_cnt = 0;
+			if(Read_CHR)
+			{
+				battery.CHR_Flag  = 0; //未在充电
+				battery.Bat_Full = 0;  //充满标志位清空
+			}
+		}
+	}
+	else//不充电，电量采集周期
+	{
+		if(rtc0_cnt> bat_cycle )
+		{
+			battery.bat_capacity = battery_check_read();//采集电量
+			rtc0_cnt = 0;
+		}
+	}	
+}
+#endif
 
-
-uint8_t tx_cnt;
+/************************************************* 
+@Description:主函数
+@Input:无
+@Output:
+@Return:无
+*************************************************/ 
+uint32_t test_i;
 int main(void)
 {
-		key_init();//按键初始化
-		motor_init();//震动电机初始化	
-		Radio_Init();//射频初始化		
-		while(1)
-		{
-			if(ucFlag_RTC)
-			{
-				tx_cnt++;
-				ucFlag_RTC = 0;
-				
-	//			radio_send();
-			}
-			__WFI();
-		}
-}
-
-
-void RADIO_IRQHandler(void)
-{
-	if(NRF_RADIO->EVENTS_END)
+	app_init();
+	#if TEST
+	function_test();
+	#endif
+	OLED_Init();
+	//初始电量采集
+	nrf_delay_ms(1000);
+	battery.bat_capacity = battery_check_read();
+	RTC_Time_Set(0,1);
+	while(1)
 	{
-		NRF_RADIO->EVENTS_END=0;
-		radio_disable();
-//		if(NRF_RADIO->STATE==10UL)//TXIDLE
-//		{
-//			NRF_RADIO->EVENTS_DISABLED=0;
-//			NRF_RADIO->TASKS_DISABLE =1;
-//		}
+		Key_Deal();//按键
+		Bat_Detect();//电量采集
+		//1s定时
+		if(rtc_flag)
+		{
+			rtc0_cnt++;
+			rtc_flag = 0;
+			test_i++;
+//			if(test_i<100)
+				Raio_Deal();//射频功能		
+		}
+		OLED_SHOW();
+		__WFI();
 	}
 }
+
+
+

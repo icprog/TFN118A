@@ -1,9 +1,123 @@
-#include "rtc.h"
+/*******************************************************************************
+** °æÈ¨:		
+** ÎÄ¼şÃû: 		rtc.c
+** °æ±¾£º  		1.0
+** ¹¤×÷»·¾³: 	MDK-ARM 5.23
+** ×÷Õß: 		cc
+** Éú³ÉÈÕÆÚ: 	2017-07-14
+** ¹¦ÄÜ:		  
+** Ïà¹ØÎÄ¼ş:	rtc.h
+** ĞŞ¸ÄÈÕÖ¾£º	
+** °æÈ¨ËùÓĞ   
+*******************************************************************************/
 
+#include "rtc.h"
+#include "app_init.h"
+
+#define TEST 1
+#if TEST
+//rtc_typedef Global_Time = {0x20,0x02,0x28,0x23,0x59,0x50,0x07};  //ÄêÔÂÈÕÊ±·ÖÃë ĞÇÆÚ 
+//uint8_t Global_Time[7] = {20,2,29,23,59,50,7};  //ÄêÔÂÈÕÊ±·ÖÃë ĞÇÆÚ 
+rtc_typedef Global_Time = {0x20,0x12,0x31,0x23,0x59,0x50,0x07};  //ÄêÔÂÈÕÊ±·ÖÃë ĞÇÆÚ 
+
+//rtc_typedef Global_Time = {0x21,0x02,0x28,0x23,0x59,0x50,0x04};//ÄêÔÂÈÕÊ±·ÖÃë ĞÇÆÚ 
+#else
+rtc_typedef Global_Time = {0x17,0x07,0x14,0x15,0x09,0x00,0x05};  //ÄêÔÂÈÕÊ±·ÖÃë ĞÇÆÚ 
+#endif
+
+uint8_t rtc_flag;//¶¨Ê±£¬ÉäÆµ·¢ËÍ
 //if(1==get_uart1_ready(0xffff))
 //{
+#define BCD
+#ifdef BCD
 /*BCDÈÕÀúËã·¨*/
-uint8_t BCDInc(uint8_t *ucByte, uint8_t ucMin, uint8_t ucMax)
+//uint8_t BCDInc(uint8_t *ucByte, uint8_t ucMin, uint8_t ucMax)
+//{
+//	if(*ucByte<ucMin||*ucByte>ucMax) *ucByte=ucMin;
+//	if(*ucByte==ucMax)
+//	{
+//		*ucByte=ucMin;
+//		return 1;
+//	}
+//	if((++*ucByte&0x0f)>9) *ucByte+=6;
+//	return 0;
+//}
+
+////¸ù¾İÌá¹©µÄÄê¡¢ÔÂ¼ÆËãµ±ÔÂ×îºóÒ»ÈÕ£¬Ö§³ÖÈòÄê£¬BCD¸ñÊ½
+//uint8_t DateMaxCalc21Cn(uint8_t ucBcdYeah, uint8_t ucBcdMonth)
+//{
+//	uint8_t ucBcdtmp1;
+
+//	if(ucBcdMonth&0x10) ucBcdtmp1=(ucBcdMonth&0x01)?0x30:0x31;	//10,11,12
+//	else
+//	{
+//		if(ucBcdMonth==2)	//2
+//		{
+//			ucBcdtmp1=0x28;
+//			if((ucBcdYeah&0x01)==0)
+//			{
+//				if(ucBcdYeah&0x02)
+//				{
+//					if(ucBcdYeah&0x10) ucBcdtmp1=0x29;
+//				}
+//				else
+//				{
+//					if((ucBcdYeah&0x10)==0) ucBcdtmp1=0x29;
+//				}
+//			}
+//		}
+//		else	//1,3~9
+//		{
+//			ucBcdtmp1=(ucBcdMonth&0x08)?(ucBcdMonth-1):ucBcdMonth;	//8,9-->7,8
+//			ucBcdtmp1=(ucBcdtmp1&0x01)?0x31:0x30;	
+//		}				
+//	}
+//	return ucBcdtmp1;
+//}
+
+//void Calendar21Century(uint8_t * RTCtime)	//20xx
+//{
+//	if(BCDInc(&RTCtime[5],0x00,0x59))		//second
+//	if(BCDInc(&RTCtime[4],0x00,0x59))		//minute
+//	if(BCDInc(&RTCtime[3],0x00,0x23))		//hour
+//	if(BCDInc(&RTCtime[2],0x01,DateMaxCalc21Cn(RTCtime[0], RTCtime[1])))	//date
+//	if(BCDInc(&RTCtime[1],0x01,0x12))		//month
+//	BCDInc(&RTCtime[0],0x00,0x99);		//year			
+//}
+
+
+/************************************************* 
+@Description:Ê®½øÖÆ×ª»»³ÉBCD
+       16->0X16
+@Input:ÎŞ
+@Output:ÎŞ
+@Return:ÎŞ
+*************************************************/ 
+u8 DecToBCD(uint8_t src)
+{
+	return ((src/10<<4)|src%10);
+}
+
+/************************************************* 
+@Description:BCD×ª»»³É10½øÖÆ
+       16->0X16
+@Input:ÎŞ
+@Output:ÎŞ
+@Return:ÎŞ
+*************************************************/ 
+u8 BCDToDec(uint8_t src)
+{
+	return ((src >> 4)*10 +(src&0x0f));
+}
+
+
+/************************************************* 
+@Description:rtcÊ±¼äÀÛ¼Ó£¬·µ»ØÊ±¼ä
+@Input:ÎŞ
+@Output:·µ»Ø1£¬¿¼ÂÇÊÇ·ñ¸üĞÂºóÃæµÄÊ±¼ä
+@Return:ÎŞ
+*************************************************/ 
+uint8_t CalendarIncBCD(uint8_t *ucByte, uint8_t ucMin, uint8_t ucMax)
 {
 	if(*ucByte<ucMin||*ucByte>ucMax) *ucByte=ucMin;
 	if(*ucByte==ucMax)
@@ -15,49 +129,242 @@ uint8_t BCDInc(uint8_t *ucByte, uint8_t ucMin, uint8_t ucMax)
 	return 0;
 }
 
-//¸ù¾İÌá¹©µÄÄê¡¢ÔÂ¼ÆËãµ±ÔÂ×îºóÒ»ÈÕ£¬Ö§³ÖÈòÄê£¬BCD¸ñÊ½
-uint8_t DateMaxCalc21Cn(uint8_t ucBcdYeah, uint8_t ucBcdMonth)
+/************************************************* 
+@Description:¸ù¾İÌá¹©µÄÄê¡¢ÔÂ¼ÆËãµ±ÔÂ×îºóÒ»ÈÕ£¬Ö§³ÖÈòÄê,²¢ÇÒÖ»¿¼ÂÇ20xxÄê
+@Input:ÎŞ
+@Output:ÎŞ
+@Return:ÎŞ
+*************************************************/ 
+static uint8_t DateMaxCalc21Cn(uint8_t Year, uint8_t Month)
 {
-	uint8_t ucBcdtmp1;
-
-	if(ucBcdMonth&0x10) ucBcdtmp1=(ucBcdMonth&0x01)?0x30:0x31;	//10,11,12
-	else
+	uint8_t tmp1;
+	switch(Month)
 	{
-		if(ucBcdMonth==2)	//2
+		case 0x01:case 0x03:case 0x05:case 0x07:case 0x08:case 0x10:case 0x12: //31Ìì
+			tmp1 = 0x31;
+			break;
+		case 0x04:case 0x06:case 0x09:case 0x11://30Ìì
+			tmp1 = 0x30;
+			break;
+		case 2:
+			Year = BCDToDec(Year);//×ª³É10½øÖÆ
+			if(0 == (Year%4))//µ±Äê·İ²»ÊÇÕı°İÄêÊ±£¬Äê·İÄÜ±»4Õû³ıµÄÊÇÈòÄê£¬·ñÔòÊÇÆ½Äê
+				tmp1 = 0x29;//ÈòÄê29Ìì
+			else
+				tmp1 = 0x28;//Æ½Äê28Ìì
+		default:
+			break;
+	}			
+	return tmp1;
+}
+
+/************************************************* 
+@Description:Ê±¼ä¸üĞÂ
+@Input:ÎŞ
+@Output:ÎŞ
+@Return:ÎŞ
+*************************************************/ 
+void Calendar21Century(rtc_typedef* pRTCtime)	//20xx
+{
+	if(CalendarIncBCD(&pRTCtime->sec,0x00,0x59))		//second
+	{
+		if(CalendarIncBCD(&pRTCtime->min,0x00,0x59))		//minute
 		{
-			ucBcdtmp1=0x28;
-			if((ucBcdYeah&0x01)==0)
+			if(CalendarIncBCD(&pRTCtime->hour,0x00,0x23))		//hour
 			{
-				if(ucBcdYeah&0x02)
+				CalendarIncBCD(&pRTCtime->week,0x01,0x07);//ĞÇÆÚ
+				if(CalendarIncBCD(&pRTCtime->day,1,DateMaxCalc21Cn(pRTCtime->year, pRTCtime->month)))	//date
 				{
-					if(ucBcdYeah&0x10) ucBcdtmp1=0x29;
-				}
-				else
-				{
-					if((ucBcdYeah&0x10)==0) ucBcdtmp1=0x29;
+					if(CalendarIncBCD(&pRTCtime->month,0x01,0x12))		//month
+					{
+						CalendarIncBCD((uint8_t*)&pRTCtime->year,0x00,0x99);		//year	
+					}
 				}
 			}
 		}
-		else	//1,3~9
-		{
-			ucBcdtmp1=(ucBcdMonth&0x08)?(ucBcdMonth-1):ucBcdMonth;	//8,9-->7,8
-			ucBcdtmp1=(ucBcdtmp1&0x01)?0x31:0x30;	
-		}				
-	}
-	return ucBcdtmp1;
+	}								
 }
 
 
-void rtc_Init(void)
+/************************************************* 
+@Description:rtcÊ±¼äÉèÖÃ
+@Input:ÎŞ
+@Output:ÎŞ
+@Return:ÎŞ
+*************************************************/ 
+#define RTC_Sec_Pos	0
+#define RTC_Sec_Msk (0x3f<<RTC_Sec_Pos)
+#define RTC_Min_Pos 6
+#define RTC_Min_Msk (0x3f<<RTC_Min_Pos)
+#define RTC_Hour_Pos 12
+#define RTC_Hour_Msk (0x1f<<RTC_Hour_Pos)
+#define RTC_Day_Pos 17
+#define RTC_Day_Msk (0x1f << RTC_Day_Pos)
+#define RTC_Month_Pos 22
+#define RTC_Month_Msk ( 0x0f << RTC_Month_Pos )
+#define RTC_Year_Pos 26
+#define RTC_Year_Msk (0x1f << RTC_Year_Pos)
+void RTC_Time_Set(uint32_t RTCtime,uint8_t Week)
 {
-    NRF_RTC0->PRESCALER = 4095;	//125ms		
-	  //Ê¹ÄÜcompare0ÊÂ¼ş£
-	  NRF_RTC0->EVTENSET = RTC_EVTEN_COMPARE0_Enabled << RTC_EVTEN_COMPARE0_Pos;
-	  //ÉèÖÃCOMPARE0ÊÂ¼ş²úÉúÊÇ´¥·¢rtcÖÕ¶Ë
-	  NRF_RTC0->INTENSET = RTC_INTENSET_COMPARE0_Enabled << RTC_INTENSET_COMPARE0_Pos;
-		NRF_RTC0->CC[0] = 8; //1S¶¨Ê±
-	  NRF_RTC0->TASKS_START = 1;
-    NVIC_SetPriority(RTC0_IRQn, 3);
-		NVIC_ClearPendingIRQ(RTC1_IRQn);
-	  NVIC_EnableIRQ( RTC0_IRQn );	
+	rtc_typedef  temp_time;
+	#if TEST
+	Global_Time.year = 17;Global_Time.month = 7;Global_Time.day=22;
+	Global_Time.hour = 18;Global_Time.min = 25;Global_Time.sec=50;
+	RTCtime = (Global_Time.year << RTC_Year_Pos)|(Global_Time.month <<RTC_Month_Pos)|(Global_Time.day<<RTC_Day_Pos)
+			| (Global_Time.hour << RTC_Hour_Pos) | (Global_Time.min << RTC_Min_Pos)|(Global_Time.sec <<RTC_Sec_Pos) ;
+	#endif
+	temp_time.sec = ((RTCtime&RTC_Sec_Msk)>>RTC_Sec_Pos);
+	temp_time.min = ((RTCtime&RTC_Min_Msk)>>RTC_Min_Pos);
+	temp_time.hour = ((RTCtime&RTC_Hour_Msk)>>RTC_Hour_Pos);
+	temp_time.day = ((RTCtime&RTC_Day_Msk)>>RTC_Day_Pos);
+	temp_time.month = ((RTCtime&RTC_Month_Msk)>>RTC_Month_Pos);
+	temp_time.year = ((RTCtime&RTC_Year_Msk)>>RTC_Year_Pos);
+	//×ª³ÉBCD
+	Global_Time.sec = DecToBCD(temp_time.sec);//second
+	Global_Time.min = DecToBCD(temp_time.min);//minute
+	Global_Time.hour = DecToBCD(temp_time.hour);//hour
+	Global_Time.day = DecToBCD(temp_time.day);//day
+	Global_Time.month = DecToBCD(temp_time.month);//month
+	Global_Time.year = DecToBCD((uint8_t)temp_time.year);//year
+	Global_Time.week  = get_day_of_week(Global_Time);
 }
+
+/************************************************* 
+@Description:»ñµÃĞÇÆÚ
+@Input:ÎŞ
+@Output:·µ»ØĞÇÆÚÈÕ¿ªÊ¼£¬´Ó0¿ªÊ¼µÄË÷Òı£¬¼ÈĞÇÆÚÈÕ¶ÔÓ¦0£¬ĞÇÆÚÁù¶ÔÓ¦6
+@Return:ÎŞ
+*************************************************/ 
+DAY_OF_WEEK get_day_of_week(rtc_typedef RTCTime)
+{
+	RTCTime.day = BCDToDec(RTCTime.day);
+	RTCTime.month = BCDToDec(RTCTime.month);
+	RTCTime.year = 2000 + BCDToDec((uint8_t)RTCTime.year);
+	return (DAY_OF_WEEK)(((RTCTime.day+=(RTCTime.month<3?(RTCTime.year--):(RTCTime.year-2))), (23*RTCTime.month/9+RTCTime.day+4+RTCTime.year/4-RTCTime.year/100+RTCTime.year/400) ) % 7);
+}
+
+#else 
+
+
+#define RTC_Sec_Pos	0
+#define RTC_Sec_Msk (0x3f<<RTC_Sec_Pos)
+#define RTC_Min_Pos 6
+#define RTC_Min_Msk (0x3f<<RTC_Min_Pos)
+#define RTC_Hour_Pos 12
+#define RTC_Hour_Msk (0x1f<<RTC_Hour_Pos)
+#define RTC_Day_Pos 17
+#define RTC_Day_Msk (0x1f << RTC_Day_Pos)
+#define RTC_Month_Pos 22
+#define RTC_Month_Msk ( 0x0f << RTC_Month_Pos )
+#define RTC_Year_Pos 26
+#define RTC_Year_Msk (0x1f << RTC_Year_Pos)
+/************************************************* 
+@Description:rtcÊ±¼äÀÛ¼Ó£¬·µ»ØÊ±¼ä
+@Input:ÎŞ
+@Output:ÎŞ
+@Return:ÎŞ
+*************************************************/ 
+static uint8_t CalendarInc(uint8_t *ucByte, uint8_t ucMin, uint8_t ucMax)
+{
+	if(*ucByte<ucMin||*ucByte>ucMax) *ucByte=ucMin;
+	if(*ucByte==ucMax)
+	{
+		*ucByte=ucMin;
+		return 1;
+	}
+	(*ucByte)++;
+	return 0;
+}
+
+/************************************************* 
+@Description:¸ù¾İÌá¹©µÄÄê¡¢ÔÂ¼ÆËãµ±ÔÂ×îºóÒ»ÈÕ£¬Ö§³ÖÈòÄê,²¢ÇÒÖ»¿¼ÂÇ20xxÄê
+@Input:ÎŞ
+@Output:ÎŞ
+@Return:ÎŞ
+*************************************************/ 
+static uint8_t DateMaxCalc21Cn(uint8_t Yeah, uint8_t Month)
+{
+	uint8_t tmp1;
+	switch(Month)
+	{
+		case 1:case 3:case 5:case 7:case 8:case 10:case 12: //31Ìì
+			tmp1 = 31;
+			break;
+		case 4:case 6:case 9:case 11://30Ìì
+			tmp1 = 30;
+			break;
+		case 2:
+			if(0 == (Yeah%4))//µ±Äê·İ²»ÊÇÕı°İÄêÊ±£¬Äê·İÄÜ±»4Õû³ıµÄÊÇÈòÄê£¬·ñÔòÊÇÆ½Äê
+				tmp1 = 29;//ÈòÄê29Ìì
+			else
+				tmp1 = 28;//Æ½Äê28Ìì
+		default:
+			break;
+	}			
+	return tmp1;
+}
+
+
+
+/************************************************* 
+@Description:Ê±¼ä¸üĞÂ
+@Input:ÎŞ
+@Output:ÎŞ
+@Return:ÎŞ
+*************************************************/ 
+void Calendar21Century(rtc_typedef* pRTCtime)	//20xx
+{
+	if(CalendarInc(&pRTCtime->sec,0,59))		//second
+	{
+		if(CalendarInc(&pRTCtime->min,0,59))		//minute
+		{
+			if(CalendarInc(&pRTCtime->hour,0,23))		//hour
+			{
+				CalendarInc(&pRTCtime->week,1,7);//ĞÇÆÚ
+				if(CalendarInc(&pRTCtime->day,1,DateMaxCalc21Cn(pRTCtime->year, pRTCtime->month)))	//date
+				{
+					if(CalendarInc(&pRTCtime->month,1,12))		//month
+					{
+						CalendarInc(&pRTCtime->year,0,99);		//year	
+					}
+				}
+			}
+		}
+	}								
+}
+/************************************************* 
+@Description:rtcÊ±¼äÉèÖÃ
+@Input:ÎŞ
+@Output:ÎŞ
+@Return:ÎŞ
+*************************************************/ 
+void RTC_Time_Set(uint32_t RTCtime)
+{
+	Global_Time.sec = ((RTCtime&RTC_Sec_Msk)>>RTC_Sec_Pos);//second
+	Global_Time.min = ((RTCtime&RTC_Min_Msk)>>RTC_Min_Pos);//minute
+	Global_Time.hour = ((RTCtime&RTC_Hour_Msk)>>RTC_Hour_Pos);//hour
+	Global_Time.day = ((RTCtime&RTC_Day_Msk)>>RTC_Day_Pos);//day
+	Global_Time.month = ((RTCtime&RTC_Month_Msk)>>RTC_Month_Pos);//month
+	Global_Time.year = ((RTCtime&RTC_Year_Msk)>>RTC_Year_Pos);//year
+}
+#endif
+
+
+/************************************************* 
+@Description:rtcÖĞ¶Ïº¯Êı
+@Input:ÎŞ
+@Output:ÎŞ
+@Return:ÎŞ
+*************************************************/ 
+void RTC0_IRQHandler(void)
+{
+	if(NRF_RTC0->EVENTS_COMPARE[0])
+	{
+		NRF_RTC0->EVENTS_COMPARE[0]=0UL;	//clear event
+		NRF_RTC0->TASKS_CLEAR=1UL;	//clear count
+//		rtc_update_interval();
+		rtc_flag=1;
+		Calendar21Century(&Global_Time);
+	}
+}
+

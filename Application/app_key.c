@@ -1,18 +1,301 @@
 #include "app_key.h"
-//æŒ‰æŒ‰é”®çŠ¶æ€
+#include "app_init.h"
+/*******************************************************************************
+** °æÈ¨:		
+** ÎÄ¼þÃû: 		app_key.c
+** °æ±¾£º  		1.0
+** ¹¤×÷»·¾³: 	MDK-ARM 5.23
+** ×÷Õß: 		cc
+** Éú³ÉÈÕÆÚ: 	2017-07-13
+** ¹¦ÄÜ:		  
+** Ïà¹ØÎÄ¼þ:	app_key.h
+** ÐÞ¸ÄÈÕÖ¾£º	
+** °æÈ¨ËùÓÐ   
+*******************************************************************************/
+
+uint16_t key_tim;//¼ÆÊýÖµ£¬¼ä¸ô40ms
+uint16_t key_double_tim;//¼ÇÂ¼µ¥»úºó£¬°´¼üÌ§ÆðÊ±¼ä
+uint16_t key_up_tim;//°´¼üÌ§Æð¼ÆÊ±
+ 
+#define key_double_interval 12   //480ms
+#define key_up_delay (key_double_interval*2)
+extern uint16_t Key_Alarm_Delay;
+uint8_t Key_Scan_En;//°´¼üÉ¨ÃèÊ¹ÄÜ±êÖ¾Î»
+
+void Key_Func(void);//°´¼ü¹¦ÄÜ´¦Àíº¯Êý
+extern uint8_t State_Key_Alram;//°´¼ü±¨¾¯
+
 typedef enum
 {
-	key_down,
-	key_up
-}KeyS_Typedef;
+	no_press,
+	short_press=1,//¶Ì°´
+	double_press,//Ë«»÷
+	long_press//³¤°´
+}Key_Value;
+
+//typedef struct
+//{
+//	uint8_t short_press_happen;//¶Ì°´±êÖ¾Î»
+//	uint8_t double_press_happen;//Ë«»÷±êÖ¾Î»
+//	uint8_t long_press_happen;//³¤°´±êÖ¾Î»	
+//}Key_Flag;
 
 
+typedef struct
+{
+	Key_Value Value;
+//	Key_Flag  Flag;
+//	uint8_t key_up;
+}Key_Typedef;
+
+Key_Typedef k1;
+uint8_t key_state;
+//void Key_Init(void)
+//{
+//	
+//}
+/************************************************* 
+@Description:°´¼üÏû¶¶¶¨Ê±Æ÷
+@Input:ÎÞ
+@Output:ÎÞ
+@Return:ÎÞ
+*************************************************/ 
+void key_tim_start(void)
+{
+	rtc1_init();
+}
+
+/************************************************* 
+@Description:°´¼üÖÐ¶ÏÊÂ¼þ
+@Input:ÎÞ
+@Output:ÎÞ
+@Return:ÎÞ
+*************************************************/ 
+void onKeyEvent(void)
+{
+	key_tim_start();//Æô¶¯Ïû¶¶¶¨Ê±Æ÷
+	Key_Read_Disable_Interrupt();//°´¼üÖÐ¶Ï²»Ê¹ÄÜ
+}
+
+
+/************************************************* 
+@Description:Ïû¶¶¼ÆÊ±Æ÷
+@Input:ÎÞ
+@Output:ÎÞ
+@Return:ÎÞ
+*************************************************/ 
+void RTC1_IRQHandler(void)
+{
+	if(NRF_RTC1->EVENTS_COMPARE[0])
+	{
+		NRF_RTC1->EVENTS_COMPARE[0]=0UL;	//clear event
+		NRF_RTC1->TASKS_CLEAR=1UL;	//clear count
+//		key_tim++;//°´¼ü¼ÆÊý
+//		key_double_tim++;
+		Key_Scan_En = 1;//°´¼üÉ¨ÃèÊ¹ÄÜ
+	}
+}
+
+
+/************************************************* 
+Description:°´¼ü³õÊ¼»¯
+Input:ÎÞ
+Output:ÎÞ
+Return:ÎÞ
+*************************************************/
+/*
 void key_init(void)
 {
-	
+	//°´¼ü
+	NRF_GPIO->PIN_CNF[KEY_Pin_Num]=(GPIO_PIN_CNF_SENSE_Low << GPIO_PIN_CNF_SENSE_Pos)//low level
+										| (GPIO_PIN_CNF_DRIVE_S0S1 << GPIO_PIN_CNF_DRIVE_Pos)
+                                        | (GPIO_PIN_CNF_PULL_Pullup << GPIO_PIN_CNF_PULL_Pos)
+                                        | (GPIO_PIN_CNF_INPUT_Connect << GPIO_PIN_CNF_INPUT_Pos)
+                                        | (GPIO_PIN_CNF_DIR_Input << GPIO_PIN_CNF_DIR_Pos);
+	NRF_GPIOTE->EVENTS_PORT=0UL;
+	NRF_GPIOTE->INTENSET=GPIOTE_INTENSET_PORT_Enabled << GPIOTE_INTENSET_PORT_Pos;	//PORT
+	NVIC_SetPriority(GPIOTE_IRQn, PORT_PRIORITY);
+	NVIC_EnableIRQ(GPIOTE_IRQn);
+}
+*/
+/************************************************* 
+@Description:°´¼üÉ¨Ãè ¶Ì°´¡¢³¤°´
+@Input:ÎÞ
+@Output:ÎÞ
+@Return:ÎÞ
+*************************************************/ 
+//void Get_Key_Value(void)
+//{
+//	if(!Read_KEY)//°´¼ü°´ÏÂ
+//	{
+//		key_up_tim = 0;
+//		if(0 == k1.Flag.short_press_happen)
+//		{
+//			k1.Flag.short_press_happen = 1;
+//			key_tim = 0; //°´¼ü°´ÏÂ£¬¼ÆÊ±Çå0
+//		}
+//		else if(1 == k1.Flag.short_press_happen)
+//		{
+//			if(key_tim > Key_Alarm_Delay)//³¤°´£¬ÖÃÎª1
+//			{
+//				k1.Value = long_press;//³¤°´
+//				k1.Flag.long_press_happen = 1;
+//				k1.Flag.short_press_happen = 0;
+//			}
+//		}
+//	}
+//	if(Read_KEY)//°´¼üÌ§Æð
+//	{
+//		key_up_tim++;
+//		if(1 == k1.Flag.short_press_happen)//k1.Flag.short_press_happen=1£¬ËµÃ÷°´¼üÎª¶Ì°´
+//		{
+//			k1.Flag.short_press_happen = 0;//Çå³ý¶Ì°´ÊÂ¼þ
+//			if(0 == k1.Flag.double_press_happen)//µÚÒ»´ÎÌ§Æð
+//			{
+//				k1.Flag.double_press_happen = 1;//°´¼üË«»÷±êÖ¾Î»ÖÃ1,µÈ´ýÈ·ÈÏÊÇ·ñÎªË«»÷
+//				key_double_tim = 0;
+//			}
+//			else if(1 == k1.Flag.double_press_happen)//µÚ¶þ´ÎÌ§Æð
+//			{
+//				if(key_double_tim < key_double_interval) //µÚÒ»´Î·¢Éú¶Ì°´ºó£¬ÔÚ500msÄÚ·¢ÉúµÚ¶þ´Î¶Ì°´£¬Íê³ÉÒ»´ÎË«»÷
+//				{
+//					k1.Value = double_press;//Ë«»÷
+//					k1.Flag.double_press_happen = 0;//Çå³ý±êÖ¾Î»
+//				}
+//			}
+//		}
+//		else if(1 == k1.Flag.double_press_happen)//µÚÒ»´Î¶Ì°´ºó£¬µÈ´ý500ms£¬Èç¹ûÎ´·¢Éú¶Ì°´£¬¸üÐÂÖµ
+//		{
+//			if(key_double_tim > key_double_interval)
+//			{
+//				k1.Flag.double_press_happen = 0;
+//				k1.Value = short_press;//¶Ì°´
+//			}
+//		}
+//		else if(1 == k1.Flag.long_press_happen)
+//		{
+//			k1.Flag.long_press_happen = 0;
+//			k1.Flag.short_press_happen = 0;
+//		}
+
+//	}
+//}
+
+
+void Get_Key_Value(void)
+{
+	switch(key_state)//
+	{
+		case 0:if(!Read_KEY) { key_state = 1; key_tim=0;}break;
+		case 1://¶Ì°´³¤°´ÅÐ¶Ï
+			if(Read_KEY)//¶Ì°´
+			{
+				key_state = 3;
+				key_double_tim = 0;
+			}
+			else if(!Read_KEY)
+			{
+				key_tim++;
+				if(key_tim > Key_Alarm_Delay )//³¤°´
+				{
+					k1.Value = long_press;
+					key_state = 2; 
+				}
+			}
+			break;
+		case 2://³¤°´ÊÍ·Å
+			if(Read_KEY)
+			{
+				key_state = 0;
+			}
+			break;
+		case 3://¶Ì°´Ë«»÷ÅÐ¶Ï
+			key_double_tim++;
+			if(!Read_KEY)
+			{
+				if(key_double_tim<key_double_interval)
+				{
+					key_state = 4;
+					key_tim = 0;
+				}
+			}
+			else if(Read_KEY)
+			{
+				if(key_double_tim > key_double_interval)
+				{
+					k1.Value = short_press;
+					key_state = 0;
+				}
+			}
+			break;
+		case 4://Ë«»÷³¤°´ÅÐ¶Ï
+			if(Read_KEY)//Ë«»÷
+			{
+				key_state = 0;
+				k1.Value = double_press;
+			}
+			else if(!Read_KEY)//³¤°´
+			{
+				key_tim++;
+				if(key_tim > Key_Alarm_Delay )//³¤°´
+				{
+					k1.Value = long_press;
+					key_state = 2; 
+				}
+			}
+			break;
+		default : key_state = 0;break;
+	}
+}
+/************************************************* 
+@Description:°´¼ü´¦Àíº¯Êý
+@Input:ÎÞ
+@Output:ÎÞ
+@Return:·µ»Ø¼üÖµ
+*************************************************/ 
+void Key_Deal(void)
+{
+	if(Key_Scan_En)//40msÉ¨ÃèÒ»´Î°´¼ü
+	{
+		Key_Scan_En = 0;
+		Get_Key_Value();//»ñÈ¡¼üÖµ
+		Key_Func();//°´¼ü¹¦ÄÜº¯Êý
+	}
 }
 
-void key_scan(void)
+/************************************************* 
+@Description:°´¼üÓÃ»§º¯Êý
+@Input:ÎÞ
+@Output:ÎÞ
+@Return:·µ»Ø¼üÖµ
+*************************************************/ 
+uint8_t key_cnt;
+void Key_Func(void)
 {
-	
+
+	if(0 == key_state)//Ì§Æð
+	{
+		rtc1_deinit();//Í£Ö¹É¨Ãè°´¼ü	
+		Key_Read_Enable_Interrupt();//°´¼ü ÖÐ¶ÏÊ¹ÄÜ
+	}
+	switch(k1.Value)
+	{
+		case short_press:
+			key_cnt = 1;
+			k1.Value = no_press;
+			break;
+		case double_press:
+			key_cnt = 2;
+			k1.Value = no_press;		
+			break;
+		case long_press:
+			key_cnt = 3;
+			State_Key_Alram = 1;
+			k1.Value = no_press;
+			break;
+		case no_press:
+			break;
+	}
+//	key_cnt = 0;
 }
+

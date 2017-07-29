@@ -20,7 +20,6 @@
 #include "nrf.h"
 #include "nrf_nvmc.h"
 
-
 void nrf_nvmc_page_erase(uint32_t address)
 { 
   // Enable erase.
@@ -117,7 +116,7 @@ void nrf_nvmc_write_words(uint32_t address, const uint32_t * src, uint32_t num_w
 }
 
 //byte read
-	void slf_nrf_nvmc_read_lowbytes(uint32_t address,uint8_t *des,uint8_t num_bytes)
+void slf_nrf_nvmc_read_lowbytes(uint32_t address,uint8_t *des,uint8_t num_bytes)
 {
    uint8_t i;
 	 for(i=0;i<num_bytes;i++)

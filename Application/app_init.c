@@ -2,7 +2,10 @@
 #include "app_init.h"
 
 #define rtc_interval 1  //单位s
-#define rtc_base (32768*rtc_interval) - 1
+#define rtc_base ((32768*rtc_interval) - 1)
+
+
+bat_typedef battery;//电池电量
 /************************************************* 
 Description:配置低频时钟时钟源  
 Input:
@@ -17,10 +20,10 @@ static void lfclk_init(uint8_t source)
 	//选择时钟源
 	lfclksrc = source ? CLOCK_LFCLKSRC_SRC_Xtal : CLOCK_LFCLKSRC_SRC_RC;
 	NRF_CLOCK->LFCLKSRC = lfclksrc << CLOCK_LFCLKSRC_SRC_Pos;
-  NRF_CLOCK->TASKS_LFCLKSTART = 1;
+	NRF_CLOCK->TASKS_LFCLKSTART = 1;
 	while (NRF_CLOCK->EVENTS_LFCLKSTARTED == 0) 
-  {
-  }	
+	{
+	}	
 }
 
 /************************************************* 
@@ -41,31 +44,84 @@ static uint8_t random_vector_generate()
 //	NRF_RNG->EVENTS_VALRDY = 0;
 //	NRF_RNG->TASKS_START = 1;
 //	while(NRF_RNG->EVENTS_VALRDY == 0);
+//	NRF_RNG->EVENTS_VALRDY = 1;
 //	rng_value = NRF_RNG->VALUE;
 //	NRF_RNG->TASKS_STOP = 1;
 //	return rng_value;
 }
 /************************************************* 
-Description:rtc初始化  
-Input:
-Output:无
-Return:无
+@Description:rtc初始化  
+@Input:
+@Output:无
+@Return:无
 *************************************************/  
-void rtc_init(void)
+void rtc0_init(void)
 {
 	lfclk_init(1);//1：XOSC 0：ROSC
 	NRF_RTC0->PRESCALER = 0;//32.768khz 约等于0.03ms
 	NRF_RTC0->CC[0] = rtc_base;//
 	NRF_RTC0->EVENTS_COMPARE[0] = 0;//EVENTS_TICK
-	NRF_RTC0->INTENSET =  RTC_INTENCLR_COMPARE0_Msk;//
-	NRF_RTC0->TASKS_START = 1;
+	NRF_RTC0->INTENSET =  RTC_INTENCLR_COMPARE0_Enabled<<RTC_INTENCLR_COMPARE0_Pos;//
+//	NRF_RTC0->TASKS_START = 1;
 	
-	NVIC_SetPriority(RTC0_IRQn,RTC_PRIORITY);
+	NVIC_SetPriority(RTC0_IRQn,RTC0_PRIORITY);
 	NVIC_ClearPendingIRQ(RTC0_IRQn);
 	NVIC_EnableIRQ( RTC0_IRQn );
 }
+/************************************************* 
+@Description:rtc0启动计数  
+@Input:
+@Output:无
+@Return:无
+*************************************************/  
+static void rtc0_start(void)
+{
+	NRF_RTC0->TASKS_START = 1;
+}
+/************************************************* 
+@Description:rtc0停止计数
+@Input:
+@Output:无
+@Return:无
+*************************************************/  
+static void rtc0_stop(void)
+{
+	NRF_RTC0->TASKS_STOP = 1;
+}
 
-/*
+/************************************************* 
+Description:rtc1初始化  
+Input:
+Output:无
+Return:无
+*************************************************/ 
+void rtc1_init(void)
+{	
+	NRF_RTC1->PRESCALER = 0;//32.768khz 约等于0.03ms
+	NRF_RTC1->CC[0] = jitter_delay;//越40ms
+	NRF_RTC1->EVENTS_COMPARE[0] = 0;//EVENTS_TICK
+	NRF_RTC1->INTENSET =  RTC_INTENCLR_COMPARE0_Enabled<<RTC_INTENCLR_COMPARE0_Pos;//使能中断
+	NRF_RTC1->TASKS_START = 1;
+	
+	NVIC_SetPriority(RTC1_IRQn,RTC1_PRIORITY);
+	NVIC_ClearPendingIRQ(RTC1_IRQn);
+	NVIC_EnableIRQ( RTC1_IRQn );	
+}
+
+/************************************************* 
+Description:rtc1初始化  
+Input:
+Output:无
+Return:无
+*************************************************/ 
+void rtc1_deinit(void)
+{	
+	NRF_RTC1->TASKS_STOP = 1;
+	NRF_RTC1->INTENSET &=  (~RTC_INTENCLR_COMPARE0_Msk);//中断不使能
+	NVIC_DisableIRQ( RTC1_IRQn );	
+}
+
+/************************************************* 
 Description:广播间隔增加0~7.65ms的随机延时
 Input:无
 Output:无
@@ -73,15 +129,26 @@ Return:无
 */
 void rtc_update_interval(void)
 {
+	uint8_t state=0;
 	uint8_t advDelay = random_vector_generate();//0~255 0~7.65ms
-	NRF_RTC0->CC[0] = rtc_base + advDelay;
+	if(state)
+	{
+		NRF_RTC0->CC[0] = rtc_base + advDelay;
+		state = 0;
+	}
+	else
+	{
+		NRF_RTC0->CC[0] = rtc_base - advDelay;
+		state = 1;
+	}
+	
 }
-/*
+/************************************************* 
 Description:启动外部晶振
 Input:无
 Output:无
 Return:无
-*/
+*************************************************/ 
 void xosc_hfclk_start(void)
 {
 	/*当外部晶振未启动时，才启动外部晶振*/
@@ -104,12 +171,12 @@ void xosc_hfclk_start(void)
 	}		
 }
 
-/*
+/************************************************* 
 Description:关闭外部晶振
 Input:无
 Output:无
 Return:无
-*/
+*************************************************/ 
 void xosc_hfclk_stop(void)
 {
 	/**/
@@ -120,40 +187,28 @@ void xosc_hfclk_stop(void)
 }
 
 #ifdef TFN118A
-/*
+/************************************************* 
 Description:震动马达初始化
 Input:无
 Output:无
 Return:无
-*/
-void motor_init(void)
+*************************************************/ 
+static void motor_init(void)
 {
 	NRF_GPIO->PIN_CNF[Motor_Pin_Num] = (GPIO_PIN_CNF_SENSE_Disabled << GPIO_PIN_CNF_SENSE_Pos)
-																				| (GPIO_PIN_CNF_DRIVE_S0S1 << GPIO_PIN_CNF_DRIVE_Pos)
-																				| (GPIO_PIN_CNF_PULL_Disabled << GPIO_PIN_CNF_PULL_Pos)
-																				| (GPIO_PIN_CNF_INPUT_Connect << GPIO_PIN_CNF_INPUT_Pos)
-																				| (GPIO_PIN_CNF_DIR_Output << GPIO_PIN_CNF_DIR_Pos);	
-}
-/*
-Description:震动马达状态
-Input:state :1:马达震动 0:马达停止震动
-Output:无
-Return:无
-*/
-void motor_run_state(u8 state)
-{
-	if( 1 == state )
-		Motor_Run;
-	else
-		Motor_Stop;
+										| (GPIO_PIN_CNF_DRIVE_S0S1 << GPIO_PIN_CNF_DRIVE_Pos)
+										| (GPIO_PIN_CNF_PULL_Disabled << GPIO_PIN_CNF_PULL_Pos)
+										| (GPIO_PIN_CNF_INPUT_Disconnect << GPIO_PIN_CNF_INPUT_Pos)
+										| (GPIO_PIN_CNF_DIR_Output << GPIO_PIN_CNF_DIR_Pos);	
 }
 
-/*
-Description:电量采集初始化
+
+/************************************************* 
+Description:电量采集初始化 1-1.05v
 Input:无
 Output:无
 Return:无
-*/
+*************************************************/ 
 void battery_check_init(void)
 {
     NRF_ADC->CONFIG = (ADC_CONFIG_RES_10bit << 0)//精度10位
@@ -161,39 +216,197 @@ void battery_check_init(void)
                   | (0 << 5) //选择内部1.2V为参考电压
                   | (ADC_Pin_Num << 8);//配置采样脚
  
-    NRF_ADC->ENABLE = 0x01; 
+//    NRF_ADC->ENABLE = 0x01; 
 }
-/*
+
+/************************************************* 
+Description:启动一次ADC采集，初始化延迟1s后，开始采集
+Input:无
+Output:无
+Return:无
+*************************************************/ 
+static uint16_t adc_convert_single(void)
+{
+	uint16_t val;
+	NRF_ADC->ENABLE = 1;
+	if(0 == NRF_ADC->BUSY)
+	{
+		NRF_ADC->TASKS_START = 1;
+		while(0 == NRF_ADC->EVENTS_END);
+		NRF_ADC->EVENTS_END = 0;
+		val = (uint16_t)NRF_ADC->RESULT;
+		NRF_ADC->TASKS_STOP = 1;
+	}
+	NRF_ADC->ENABLE = 0;
+	return val;
+}
+
+/************************************************* 
+@Description:4个数去掉最大值，最小值，然后取平均。
+@Input:无
+@Output:无
+@Return:无
+*************************************************/ 
+uint16_t average(u16* data)
+{
+	u8 i = 0;
+	u16 max =*data;
+	u16 min =*data;
+	u16 sum = 0;
+	u16 average1 =0;
+	for(i=0;i<4;i++)
+	{
+		if(max>*(data+i)) max = max; else max = *(data+i);
+		if(min<*(data+i)) min = min; else min = *(data+i);
+		sum =sum+(*(data+i));
+	}
+	sum-=min;
+	sum-=max;
+	sum = sum>>2;
+	average1 = sum;
+	return average1;
+}
+
+/************************************************* 
+@Description:多次采集电量,1分钟采集一次电量，考虑是否调用该函数
+@Input:无
+@Output:无
+@Return:返回ADC值
+*************************************************/ 
+uint16_t adc_convert_times(void)
+{
+	uint8_t i;
+	uint16_t val;
+	uint16_t adc_tmp[4];
+	NRF_ADC->ENABLE = 1;
+	for(i=0;i<4;i++)
+	{
+		if(0 == NRF_ADC->BUSY)
+		{
+			NRF_ADC->TASKS_START = 1;
+			while(0 == NRF_ADC->EVENTS_END);
+			NRF_ADC->EVENTS_END = 0;
+			adc_tmp[i] = (uint16_t)NRF_ADC->RESULT;
+			NRF_ADC->TASKS_STOP = 1;
+		}
+	}
+	NRF_ADC->ENABLE = 0;
+	val = average(adc_tmp);
+	return val;
+}
+/************************************************* 
 Description:电量采集
 Input:无
 Output:
 Return:无
-*/
+*************************************************/ 
+uint16_t adc_value;
 u8 battery_check_read(void)
 {
-		uint8_t adc_value,bat_range;
-		if(adc_value < OneThreshold )
+	uint16_t bat_range;
+	adc_value = adc_convert_single();
+	if(adc_value < ZeroThreshold)
+	{
+		bat_range = bat_ZeroFourth;
+	}
+	else if(adc_value < OneThreshold )
+	{
+		bat_range = bat_OneFourth;
+	}
+	else if(adc_value < TwoThreshold)
+	{
+		bat_range = bat_TwoFourth;
+	}
+	else if(adc_value < ThreeThreshold)
+	{
+		bat_range = bat_ThreeFourth;
+	}
+	else if(adc_value < FourThreshold)
+	{
+		bat_range = bat_FourFourth;
+	}
+	else
+	{
+		bat_range = bat_FourFourth;
+		if(Read_CHR)//充电引脚变成高电平，并且电压最大
+			battery.Bat_Full = 1;
+	}
+	return bat_range;
+}
+
+/************************************************* 
+Description:中断引脚初始化
+Input:无
+Output:
+Return:无
+*************************************************/ 
+static void io_interrupt_config(void)
+{
+	//充电指示IO口设置
+	NRF_GPIO->PIN_CNF[USB_CHR_Pin_Num]=GPIO_PIN_CNF_SENSE_Low<<GPIO_PIN_CNF_SENSE_Pos			//low level
+										| (GPIO_PIN_CNF_DRIVE_S0S1 << GPIO_PIN_CNF_DRIVE_Pos)
+                                        | (GPIO_PIN_CNF_PULL_Disabled << GPIO_PIN_CNF_PULL_Pos)
+                                        | (GPIO_PIN_CNF_INPUT_Connect << GPIO_PIN_CNF_INPUT_Pos)
+                                        | (GPIO_PIN_CNF_DIR_Input << GPIO_PIN_CNF_DIR_Pos);								
+	//按键
+	NRF_GPIO->PIN_CNF[KEY_Pin_Num]=(GPIO_PIN_CNF_SENSE_Low << GPIO_PIN_CNF_SENSE_Pos)			//low level
+										| (GPIO_PIN_CNF_DRIVE_S0S1 << GPIO_PIN_CNF_DRIVE_Pos)
+                                        | (GPIO_PIN_CNF_PULL_Pullup << GPIO_PIN_CNF_PULL_Pos)
+                                        | (GPIO_PIN_CNF_INPUT_Connect << GPIO_PIN_CNF_INPUT_Pos)
+                                        | (GPIO_PIN_CNF_DIR_Input << GPIO_PIN_CNF_DIR_Pos);
+	NRF_GPIOTE->EVENTS_PORT=0UL;
+	NRF_GPIOTE->INTENSET=GPIOTE_INTENSET_PORT_Enabled << GPIOTE_INTENSET_PORT_Pos;	//PORT
+	NVIC_SetPriority(GPIOTE_IRQn, PORT_PRIORITY);
+	NVIC_EnableIRQ(GPIOTE_IRQn);
+}
+
+
+
+/************************************************* 
+Description:app初始化
+Input:无
+Output:
+Return:无
+*************************************************/ 
+void app_init(void)
+{
+	SystemParaInit();
+	motor_init();//震动电机初始化	
+	Radio_Init();//射频初始化
+	rtc0_init();//rtc初始化
+	io_interrupt_config();//充电指示、按键io初始化
+	battery_check_init();
+	rtc0_start();
+}
+/************************************************* 
+Description:IO中断函数
+Input:无
+Output:
+Return:无
+*************************************************/ 
+uint8_t Port_IT_KEY;//按键
+uint8_t Port_IT_CHR;
+void GPIOTE_IRQHandler(void)
+{
+	if(NRF_GPIOTE->EVENTS_PORT)
+	{
+		NRF_GPIOTE->EVENTS_PORT = 0;
+		if(0 == Read_CHR)
 		{
-			bat_range = battery_OneFifth;
-		}
-		else if(adc_value < TwoThreshold)
-		{
-			bat_range = battery_TwoFifth;
-		}
-		else if(adc_value < ThreeThreshold)
-		{
-			bat_range = battery_ThreeFifth;
-		}
-		else if(adc_value < FourThreshold)
-		{
-			bat_range = battery_FourFifth;
-		}
-		else
-		{
+			//正在充电
+			Port_IT_CHR++;
+			battery.CHR_Flag = 1;//正在充电
 			
 		}
-		return bat_range;
+		if(0 == Read_KEY)//按键中断
+		{
+			onKeyEvent();
+			Port_IT_KEY++;
+		}
+	}
 }
+
+
 #endif
 
 

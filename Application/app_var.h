@@ -5,7 +5,11 @@
 //标签ID存储地址
 #define 	ID_BEGIN	0x3D000					//1KB,硬件信息区,前4字节放ID号
 
-
+typedef enum 
+{
+	Stand_Send,//正常发送
+	Message_Rx//消息接收
+}Radio_Work_Mode_Typedef;
 
 #define para_area 1
 #define reserved_area 2
@@ -16,27 +20,39 @@
 /*FICR寄存器中的CODEPAGESIZE对应着页个数，CODESIZE对应页包含的memory大小
 CODEPAGESIZE*CODESIZE即为ROM的大小,pg_size=1024,pg_num = 256,256KB的代码存储区，FLASH。
 */
+typedef struct
+{
+	uint32_t MARK_BASE;
+	uint32_t PARA_BASE;
+	uint32_t RESERVER_BASE;
+	uint32_t USER1_BASE;
+	uint32_t USER2_BASE;
+	uint16_t page_size;
+	uint16_t page_num;
+}ROM_BaseAddr_Typedef;   //ROM基地址定义
+/*
 #define nrf_page_size NRF_FICR->CODEPAGESIZE
-#define nrf_page_num NRF_FICR->CODESIZE - 1
+#define nrf_page_num (NRF_FICR->CODESIZE - 1)
 #define ram_para 1
 #define ram_resever 2
 #define ram_user1 3 
 #define ram_user2 4
-#define MARK_BASE nrf_page_size * nrf_page_num  //标记区基地址
+#define MARK_BASE nrf_page_size * nrf_page_num  //标记区基地址h
 #define PARA_BASE nrf_page_size * (nrf_page_num - 1)//参数区基地址
 #define RESERVER_BASE nrf_page_size * (nrf_page_num -2)//保留区基地址
 #define USER1_BASE nrf_page_size * (nrf_page_num - 3)//用户区1基地址
 #define USER2_BASE nrf_page_size * (nrf_page_num - 4)//用户区2基地址
+*/
 
 
 
-//内部FLASH
-#define PARA_RECORD_LEN											16
+//内部参数区长度
+#define PARA_RECORD_LEN									16
 //内部FLASH区类型
-#define RAMTYPE_PARA										0
-#define RAMTYPE_RESEVER									1
-#define RAMTYPE_USER1										2
-#define RAMTYPE_USER2										3
+#define RAM_TYPE_PARA									0
+#define RAM_TYPE_RESEVER								1
+#define RAM_TYPE_USER1									2
+#define RAM_TYPE_USER2									3
 
 //射频频道和方向选择
 #define DATA_CHANNEL									0
@@ -48,38 +64,43 @@ CODEPAGESIZE*CODESIZE即为ROM的大小,pg_size=1024,pg_num = 256,256KB的代码存储区，
 #define RADIO_ADDRESS_L 0X98DB6D5A
 #define RADIO_CHANNEL_DATA						25
 #define RADIO_CHANNEL_CONFIG					50
-#define PAYLOAD_LENGTH
 
-//S0
+//PACKET-S0
 #define RADIO_S0_IDX 0
 #define RADIO_S0_DIR_UP 0 //上行 
 #define RADIO_S0_DIR_DOWN 1 //下行
 #define RADIO_S0_DIR_POS 0
 #define RADIO_S0_DIR_Msk 0X01
-//max_length
+//PACKET-LENGTH
 #define RADIO_LENGTH_IDX 1
-#define PACKET_HEAD_LENGTH 2
+#define RADIO_HEAD_LENGTH 2
 /**************************************************************************
 							标签上报参数定义
 ******************************************************************************/
-//PAYLOAD
-#define PAYLOAD_BASE_IDX 2
-
-//PAYLOAD-XOR
+//PACKET-PAYLOAD-XOR
 #define PYLOAD_XOR_LENGTH 1
+
+//PACKET-PAYLOAD
+#define PAYLOAD_BASE_IDX RADIO_HEAD_LENGTH
+
+//长度
+#define RADIO_TID_LENGTH 4
+#define RADIO_RID_LENGTH 4
+#define RADIO_ID_LENGTH	4
+#define RADIO_CMD_LENGTH 1
 
 //索引号
 //#define TAG_SER_IDX                     0//顺序号
 #define TAG_ID_IDX										PAYLOAD_BASE_IDX//标签ID 2~5
-#define TAG_STATE_IDX 									PAYLOAD_BASE_IDX+4//状态字
+#define TAG_STATE_IDX 									(PAYLOAD_BASE_IDX+RADIO_TID_LENGTH)//状态字
 //#define TAG_WINDOWS_IDX								6//接收窗口指示
 //#define TAG_JOINTYPE_IDX								6//静态接入指示
 //#define TAG_ERROR_IDX									6//数据异常指示
 //#define TAG_KEY_IDX									6//按键指示
 //#define TAG_SHOCK_IDX									6//振动指示
-#define TAG_VERSION_IDX									PAYLOAD_BASE_IDX+5//版本索引号
-#define TAG_STYPE_IDX									PAYLOAD_BASE_IDX+6//信息标签类型
-#define TAG_SDATA_IDX									PAYLOAD_BASE_IDX+7//传感数据
+#define TAG_VERSION_IDX									(PAYLOAD_BASE_IDX+5)//版本索引号
+#define TAG_STYPE_IDX									(PAYLOAD_BASE_IDX+6)//信息标签类型
+#define TAG_SDATA_IDX									(PAYLOAD_BASE_IDX+7)//传感数据
 
 //值
 //取值
@@ -94,6 +115,7 @@ CODEPAGESIZE*CODESIZE即为ROM的大小,pg_size=1024,pg_num = 256,256KB的代码存储区，
 #define TAG_WITHSENSOR_Pos								2
 #define TAG_WITHWIN_Pos									3
 #define TAG_MODE_Pos									4
+#define TAG_WIHTWIN_Msk									0x08
 //版本信息 
 #define TAG_HDVERSION_POS								4
 #define TAG_SFVERSION_POS								0
@@ -110,7 +132,8 @@ CODEPAGESIZE*CODESIZE即为ROM的大小,pg_size=1024,pg_num = 256,256KB的代码存储区，
 #define TAGP_BRIEFNUM_IDX								0//短号，0～16
 #define TAGP_PWR_IDX									1//发射功率，0～7
 #define TAGP_RPINFOSRC_IDX								2//自动上报所需携带的信息来源，0～2
-#define TAGP_WORKMODE_IDX								3//工作模式，0-保存模式，1-活动模式
+#define TAGP_WORKMODE_IDX								2//工作模式，0-保存模式，1-活动模式
+#define TAGP_KEYALARM_IDX								4//按键报警时间
 //#define TAGP_DELIVERID_IDX							9//工厂ID，4B，0xFFFFFFFF-待写入
 //#define TAGP_SENSORTYPE_IDX							13//传感类型，0-无，1-温度，2-心率，0～2
 //#define TAGP_SSRUNIT_IDX								14//传感采样周期单位，0-秒，1-分，2-时
@@ -129,13 +152,17 @@ CODEPAGESIZE*CODESIZE即为ROM的大小,pg_size=1024,pg_num = 256,256KB的代码存储区，
 #define TAGP_PWR_N4DBM									5
 #define TAGP_PWR_P0DBM									6
 #define TAGP_PWR_P4DBM									7
-#define TAGP_PWR_MAX_VALUE									7  //参数最大值
+#define TAGP_PWR_MAX_VALUE								7  //参数最大值
 
 //工作模式,0-保存模式，1-活动模式
 #define TAGP_WORKMODE_Pos								0
 #define TAGP_WORKMODE_Msk								0x0f
 #define TAGP_WORKMODE_MAX_VALUE							0x01
- 
+//报警延时 
+#define TAGP_KEYALARM_Pos								0
+#define TAGP_KEYALARM_Msk								0x07
+//读写器
+#define READER_ID_IDX									(PAYLOAD_BASE_IDX + RADIO_TID_LENGTH) 
 //#define TAG_LOWVOLTAGE_Pos							0
 //#define TAG_LOWVOLTAGE_Msk							0x01
 //#define TAG_LOWVOLTAGE_WARN							0x01
@@ -157,7 +184,7 @@ CODEPAGESIZE*CODESIZE即为ROM的大小,pg_size=1024,pg_num = 256,256KB的代码存储区，
 #define ID_RESERVER1								0xFFFFFFFF//保留
 #define ID_RESERVER0								0x00000000//保留
 
-#define ID_BROADCAST_MBYTE							0XFF
+#define READER_ID_MBYTE							0XFF
 
 
 /***************************************************************************
@@ -178,14 +205,17 @@ CODEPAGESIZE*CODESIZE即为ROM的大小,pg_size=1024,pg_num = 256,256KB的代码存储区，
 标签命令写回复
 定义		执行状态2字节
 数组位置	11
+写文件
+PAYLOAD长度 TID+RID+CMD+DATA+XOR = 4+4+1+6+16+1 = 32 
 ******************************************************************/
-#define TID_LENGTH 4
-#define RID_LENGTH 4
-#define CMD_LENGTH 1
+//执行状态
 #define EXCUTE_STATE_LENGTH	2
-#define CMD_FIX_LENGTH TID_LENGTH+RID_LENGTH+CMD_LENGTH+EXCUTE_STATE_LENGTH+PYLOAD_XOR_LENGTH//
+//点对点命令固定长度
+#define CMD_FIX_LENGTH 		(RADIO_TID_LENGTH+RADIO_RID_LENGTH+RADIO_CMD_LENGTH+PYLOAD_XOR_LENGTH)
+//命令回复固定长度
+#define CMD_ACK_FIX_LENGTH 		(RADIO_TID_LENGTH+RADIO_RID_LENGTH+RADIO_CMD_LENGTH+EXCUTE_STATE_LENGTH+PYLOAD_XOR_LENGTH)//
 //命令索引号
-#define CMD_IDX	10
+#define CMD_IDX				(RADIO_HEAD_LENGTH + RADIO_TID_LENGTH + RADIO_RID_LENGTH)
 //文件操作索引号
 #define FILE_MODE_IDX (CMD_IDX+3)
 #define FILE_OFFSET_IDX (CMD_IDX+4)
@@ -195,6 +225,7 @@ CODEPAGESIZE*CODESIZE即为ROM的大小,pg_size=1024,pg_num = 256,256KB的代码存储区，
 //命令
 #define FILE_CMD_READ  								0X38  	//读文件
 #define FILE_CMD_WRITE								0X39  	//写文件
+#define MESSAGE_CMD									0XB0							
 //模式
 #define FILE_MODE_PARA								0X01	//内部参数区
 #define FILE_MODE_RESERVER							0X02	//保留区
@@ -214,7 +245,6 @@ CODEPAGESIZE*CODESIZE即为ROM的大小,pg_size=1024,pg_num = 256,256KB的代码存储区，
 				出错类别代码 出错子代码
 ******************************************************************/
 #define EXCUTE_STATE_IDX 	11
-
 
 typedef enum
 {
@@ -236,8 +266,57 @@ typedef struct
 	uint8_t length;//读取长度
 	uint16_t offset;//偏移位置
 }File_Typedef;
+
+//消息操作
+#define MESSAGE_CMD									0XB0	//消息命令
+typedef struct
+{
+	uint8_t msg_pkt_seq;	//包序号
+//	uint8_t has_data_flag;  //有数据
+	uint8_t msg_head;		//消息头
+	uint8_t msg_pkt_len;	//下发的一个包中的信息长度
+	uint8_t msg_idx;		//消息索引
+	uint8_t MSG_PUSH_HEAD;  //下发的包头
+	uint8_t PKT_PUSH_LEN[4];//包0~3长度
+	uint8_t PKT_PUSH_BUF[4][32];//包0~3数据
+	uint8_t PKT_PUSH_NUM;//分包个数
+	uint8_t PKT_PUSH_SEQ;//分包序号
+	uint8_t MSG_PUSH_SEQ;//下发的消息序号	
+	uint8_t PKT_MORE;//更多包
+	uint8_t MSG_RE_PUSH;//重发次数
+}Message_Typedef;
+//消息操作索引号
+#define MSG_HEAD_IDX (CMD_IDX+1)
+#define MSG_DATA_IDX  (CMD_IDX+2)
+
+#define MSG_HEAD_Pos								7
+#define MSG_HEAD_Msk								0X80
+#define MSG_SEQ_Pos									4
+#define MSG_SEQ_Msk									0X70
+#define MSG_SEQ_Max_Value							7
+#define MSG_PKT_Seq_Pos								0
+#define MSG_PKT_Seq_Msk								0x03
+#define MSG_PKT_END_Pos								2
+#define MSG_PKT_END_Msk								0x04
+#define MSG_END_Pos									3
+#define MSG_END_Msk									0x08
+#define MSG_PAYLOAD_FIX_LEN (RADIO_TID_LENGTH+RADIO_RID_LENGTH+RADIO_CMD_LENGTH+PYLOAD_XOR_LENGTH)
+#define MSG_ERROR_Msk								0xff
+#define MSG_START_END_VALUE							0X0000
+#define MSG_START_END_LEN							2
+#define MSG_HEAD_LEN								1
+#define MSG_RPUSH_TIMES								1
+typedef enum 
+{
+	MSG_SUCCESS=0X00,
+	MSG_PKT_SEQ_ERROR=0X02,//包序号出错
+	MSG_REPEAT_ERROR=0X01,//消息重复
+	MSG_CMDPARA_ERROR = 0X03, //命令参数错误
+	MSG_ERROR =0X04
+}ERROR_MSG_Typedef;
 //函数
 void SystemParaInit(void);
 void UpdateRunPara(void);
 uint8_t Read_Para(File_Typedef f1_para,uint8_t *p_packet);
+uint8_t Write_Para(File_Typedef f1_para,uint8_t *p_packet);
 #endif

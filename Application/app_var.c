@@ -1,5 +1,6 @@
 #include "app_var.h"
 #include "nrf_nvmc.h"
+#include "app_msg.h"
 //Éè±¸ID
 uint8_t DeviceID[4] = {0x33,0x33,0x33,0x33};
 /********************************************
@@ -12,6 +13,9 @@ uint8_t Rom_Record_Offset[4] = {16,16,32,32};//4¸öÉÈÇø¶ÔÓ¦µÄ×î´óÆ«ÒÆÁ¿,·Ö±ğ¶ÔÓ¦²
 uint8_t Rom_Record_Length[4] = {16,16,16,16};//Ã¿Ìõ¼ÇÂ¼¶ÔÓ¦µÄ×Ö½ÚÊı
 uint8_t ActiveMode;//ÖÜÆÚ·¢ËÍÃë±êÖ¾
 
+uint16_t Key_Alarm_Delay;//°´¼ü±¨¾¯ÑÓÊ±
+#define delay_interval   40  //40ms
+
 //Éè±¸ÔËĞĞÄ¬ÈÏ²ÎÊı
 const uint8_t  para_default[PARA_RECORD_LEN] = 
 {
@@ -19,7 +23,7 @@ const uint8_t  para_default[PARA_RECORD_LEN] =
 0x60,//b7~4-·¢Éä¹¦ÂÊ0dbm
 0xf1,//b7~b4 ĞÅÏ¢À´Ô´£¬Ä¬ÈÏ²»Ğ¯´øĞÅÏ¢ b3~b0 ¹¤×÷Ä£Ê½ £¬Ä¬ÈÏ»î¶¯Ä£Ê½
 0x00,//ĞÄÂÊ´«¸Ğ
-0x00,//b7-6,µ¥Î»£¬·Ö£¬b5-0£¬²ÉÑùÖÜÆÚÖµ£¬5·ÖÖÓ
+0x04,
 0
 };
 //ÒÔÏÂ¼¸¸ö²ÎÊıÓÃÀ´¼ÇÂ¼ROMÖĞµÄ16/32¿é£¨Æ«ÒÆÁ¿£©µÄ¼ÆÊıÖµ Öµ16/32£¬±íÊ¾¼ÇÂ¼¸öÊı£¬0±íÊ¾Î´¼ÇÂ¼
@@ -34,13 +38,15 @@ uint8_t	ROM1_Pos;		//µ¹ÊıµÚÈı¸öÉÈÇø£¬±£ÁôÇø
 uint8_t	ROM2_Pos;	  	//µ¹ÊıµÚËÄ¸öÉÈÇø£¬ÓÃ»§Çø1
 uint8_t	ROM3_Pos;   	//µ¹ÊıµÚÎå¸öÉÈÇø,ÓÃ»§Çø2
 uint8_t *pROM_Pos;			//¼ÇÂ¼Ö¸Õë
+
+ROM_BaseAddr_Typedef   ROM_BaseAddr;//ROM»ùµØÖ·¶¨Òå
 // uint8_t	* caucpROM[]={&ROM0_Pos,&ROM1_Pos,&ROM2_Pos,&ROM3_Pos};	
 //´æ´¢ÄÚ²¿²ÎÊı 
 uint8_t para_record[PARA_RECORD_LEN];
 
 //ÃüÁî
 uint16_t cmd_state;//ÃüÁîÖ´ĞĞÇé¿ö
-
+Radio_Work_Mode_Typedef Radio_Work_Mode = Stand_Send;
 
 /*
 Description:·µ»Ø×îĞÂ¼ÇÂ¼ROMÎ»ÖÃ
@@ -67,10 +73,11 @@ Return:ÎŞ
 uint8_t Rom_Pos(uint32_t temp_addr,uint8_t temp_size,uint8_t temp_byte)
 {
 	uint8_t i,j;
+	uint32_t base_addr = temp_addr;
 //	temp_addr = (uint8_t*)temp_addr;
 	//ÑéÖ¤buffÊÇ·ñÎª¿Õ£¬·µ»Ø×îĞÂ¼ÇÂ¼µÄÎ»ÖÃ
 	//²»ÏàµÈ£¬¼ÌĞø²éÕÒ,ÕÒµ½¿Õ£¬Ôò·µ»ØromÎ»ÖÃ£¬i =  1~~Rom_record_size¡£·µ»Ø0±íÊ¾ÅäÖÃÇøÈ«¿Õ	
-	for(i=0;i<temp_size;i++)
+	for(i=0;i<temp_size;)
 	{
 		for(j=0;j<temp_byte;j++)
 		{
@@ -79,6 +86,7 @@ uint8_t Rom_Pos(uint32_t temp_addr,uint8_t temp_size,uint8_t temp_byte)
 		}
 		if(j>=temp_byte) break;
 		i++;
+		temp_addr= base_addr + temp_byte*i;
 	}
 	return i;
 }
@@ -107,11 +115,12 @@ void UpdateRunPara(void)
 //	uint8_t time;
 	//¹¤×÷Ä£Ê½£º»î¶¯£¬»ò±£Áô 1:»î¶¯Ä£Ê½
 	ActiveMode = (para_record[TAGP_WORKMODE_IDX] & TAGP_WORKMODE_Msk) >> TAGP_WORKMODE_Pos;
-	
+	Key_Alarm_Delay = ((para_record[TAGP_KEYALARM_IDX] & TAGP_KEYALARM_Msk) >> TAGP_KEYALARM_Pos)*1000/delay_interval;
 	if(ActiveMode)
 		radio_pwr((para_record[TAGP_PWR_IDX] & TAGP_PWR_Msk) >> TAGP_PWR_Pos);
 	else
-	radio_pwr(TAGP_PWR_N4DBM);	
+		radio_pwr(TAGP_PWR_N4DBM);	
+
 }
 
 /*********************************************************
@@ -139,25 +148,25 @@ uint8_t Read_Para(File_Typedef f1_para,uint8_t *p_packet)
 		case FILE_MODE_PARA://ÄÚ²¿²ÎÊıÇø
 				max_offset = Rom_Record_Offset[0];
 				max_length = Rom_Record_Length[0];	
-				nrf_addr = PARA_BASE;//»ùµØÖ·
+				nrf_addr = ROM_BaseAddr.PARA_BASE;//»ùµØÖ·
 				pROM_Pos = &ROM0_Pos;//×îĞÂ¼ÇÂ¼
 			break;
 		case FILE_MODE_RESERVER://±£ÁôÇø
 				max_offset = Rom_Record_Offset[1];
 				max_length = Rom_Record_Length[1];
-				nrf_addr = RESERVER_BASE;
+				nrf_addr = ROM_BaseAddr.RESERVER_BASE;
 				pROM_Pos = &ROM1_Pos;
 			break;
 		case FILE_MODE_USER1://ÓÃ»§Çø1
 				max_offset = Rom_Record_Offset[2];
 				max_length = Rom_Record_Length[2];			
-				nrf_addr = USER1_BASE;
+				nrf_addr = ROM_BaseAddr.USER1_BASE;
 				pROM_Pos = &ROM2_Pos;
 			break;
 		case FILE_MODE_USER2://ÓÃ»§Çø2
 				max_offset = Rom_Record_Offset[3];
 				max_length = Rom_Record_Length[3];		
-				nrf_addr = USER2_BASE;
+				nrf_addr = ROM_BaseAddr.USER2_BASE;
 				pROM_Pos = &ROM3_Pos;
 			break; 
 		default:
@@ -165,14 +174,15 @@ uint8_t Read_Para(File_Typedef f1_para,uint8_t *p_packet)
 			break;
 	}
 	//³¤¶ÈºÍÆ«ÒÆÁ¿±ß½ç¼ì²é
-	if(f1_para.length>max_length || (f1_para.offset>max_offset && f1_para.offset<FILE_OFFSET_RNEW))
+	if(f1_para.length>=max_length || (f1_para.offset>=max_offset && f1_para.offset<FILE_OFFSET_RNEW))
 	{
 		cmd_state = FILE_ERR << 8 | FILE_BODER_ERR;
 	}
 	//ÃüÁî´íÎó
 	if(cmd_state!=CMD_RUN_SUCCESS)
 	{
-		my_memcpy(&p_packet[EXCUTE_STATE_IDX],&cmd_state,EXCUTE_STATE_LENGTH);
+		p_packet[EXCUTE_STATE_IDX] = cmd_state>>8;
+		p_packet[EXCUTE_STATE_IDX+1] = cmd_state;
 		return FALSE;
 	}
 	else
@@ -216,8 +226,13 @@ uint8_t para_check(uint8_t mode,uint8_t *pdata)
 				return FALSE;
 			}
 			break;
+		case FILE_MODE_RESERVER:
+		case FILE_MODE_USER1:
+		case FILE_MODE_USER2:
+			break;
 		default:
-			return FALSE;
+			cmd_state = FILE_ERR <<8 | FILE_MODE_ERR;
+			return TRUE;
 	}
 	return TRUE;
 }
@@ -251,25 +266,25 @@ uint8_t Write_Para(File_Typedef f1_para,uint8_t *p_packet)
 		case FILE_MODE_PARA:
 				max_offset = Rom_Record_Offset[0];		
 				max_length = Rom_Record_Length[0];	
-				nrf_addr = PARA_BASE;//»ùµØÖ·
+				nrf_addr = ROM_BaseAddr.PARA_BASE;//»ùµØÖ·
 				pROM_Pos = &ROM0_Pos;
 			break;
 		case FILE_MODE_RESERVER:
 				max_offset = Rom_Record_Offset[1];		
 				max_length = Rom_Record_Length[1];
-				nrf_addr = RESERVER_BASE;//»ùµØÖ·
+				nrf_addr = ROM_BaseAddr.RESERVER_BASE;//»ùµØÖ·
 				pROM_Pos = &ROM1_Pos;
 			break;
 		case FILE_MODE_USER1:
 				max_offset = Rom_Record_Offset[2];		
 				max_length = Rom_Record_Length[2];			
-				nrf_addr = USER1_BASE;//»ùµØÖ·
+				nrf_addr = ROM_BaseAddr.USER1_BASE;//»ùµØÖ·
 				pROM_Pos = &ROM2_Pos;
 			break;
 		case FILE_MODE_USER2:
 				max_offset = Rom_Record_Offset[3];		
 				max_length = Rom_Record_Length[3];		
-				nrf_addr = USER2_BASE;//»ùµØÖ·
+				nrf_addr = ROM_BaseAddr.USER2_BASE;//»ùµØÖ·
 				pROM_Pos = &ROM3_Pos;
 			break;
 		default:
@@ -298,7 +313,8 @@ uint8_t Write_Para(File_Typedef f1_para,uint8_t *p_packet)
 	//´íÎó£¬·µ»Ø
 	if(cmd_state!=CMD_RUN_SUCCESS)
 	{
-		my_memcpy(&p_packet[EXCUTE_STATE_IDX],&cmd_state,EXCUTE_STATE_LENGTH);
+		p_packet[EXCUTE_STATE_IDX] = cmd_state>>8;
+		p_packet[EXCUTE_STATE_IDX+1] = cmd_state;
 		return FALSE;
 	}
 	else
@@ -309,11 +325,39 @@ uint8_t Write_Para(File_Typedef f1_para,uint8_t *p_packet)
 			*pROM_Pos = 0;//¸üĞÂ×îĞÂÆ«ÒÆÁ¿
 		}
 		nrf_addr += *pROM_Pos*max_length;
-		nrf_nvmc_write_bytes(nrf_addr,&p_packet[FILE_WDATA_IDX],f1_para.length);		
+		nrf_nvmc_write_bytes(nrf_addr,&p_packet[FILE_WDATA_IDX],f1_para.length);
+		(*pROM_Pos)++;
+		if(f1_para.mode == FILE_MODE_PARA)//¸üĞÂ²ÎÊı
+		{
+			my_memcpy(para_record,&p_packet[FILE_WDATA_IDX],16);
+			UpdateRunPara();
+		}
 	}
 	return TRUE;
 }
 
+/************************************************* 
+@Description:»ñÈ¡ÎÄ¼ş²Ù×÷µØÖ·
+@Input:ÎŞ
+@Output:ÎŞ
+@Return:ÎŞ
+*************************************************/ 
+void System_Addr_Init(void)
+{
+	ROM_BaseAddr.page_size = NRF_FICR->CODEPAGESIZE;
+	ROM_BaseAddr.page_num  = NRF_FICR->CODESIZE - 1;
+	
+	ROM_BaseAddr.MARK_BASE = ROM_BaseAddr.page_size * ROM_BaseAddr.page_num;
+	
+	//para area
+	ROM_BaseAddr.PARA_BASE = ROM_BaseAddr.page_size * (ROM_BaseAddr.page_num-1);
+	//reserved area
+	ROM_BaseAddr.RESERVER_BASE = ROM_BaseAddr.page_size * (ROM_BaseAddr.page_num-2);
+	//user area1
+	ROM_BaseAddr.USER1_BASE = ROM_BaseAddr.page_size * (ROM_BaseAddr.page_num-3);
+	//user area2
+	ROM_BaseAddr.USER2_BASE = ROM_BaseAddr.page_size * (ROM_BaseAddr.page_num-4);
+}
 /*
 Description:»ñÈ¡ÏµÍ³ÔËĞĞ²ÎÊı£¬¼°»ñÈ¡²ÎÊıÇø¡¢±£ÁôÇø¡¢ÓÃ»§Çø×îĞÂ²ÎÊıÆ«ÒÆÁ¿
 Input:state : 
@@ -326,7 +370,9 @@ void SystemParaInit(void)
 	uint8_t base_offset;
 	uint8_t flash_temp[11];//temp memory
 	GetDeviceID();//»ñÈ¡Éè±¸ID
-	nrf_addr = MARK_BASE;
+	System_Addr_Init();//»ñÈ¡»ùµØÖ·
+	MSG_Addr_Init();//»ñÈ¡ÏûÏ¢´æ´¢µØÖ·
+	nrf_addr = ROM_BaseAddr.MARK_BASE;
 	nrf_nvmc_read_bytes(nrf_addr,flash_temp,11);
 	//×îºóÒ»¸öÉÈÇøÓÃÀ´´ò±ê¼Ç£¬Èç¹û¿Õ£¬ÔòÇå¿ÕROM0_Pos-ROM5´æ´¢Çø,ÅĞ¶ÏÊÇ·ñÊÇĞÂÏÂÔØµÄ³ÌĞò
 	if((flash_temp[0]!=nvmc_flash_mark[0])||(flash_temp[1]!=nvmc_flash_mark[1])||(flash_temp[2]!=nvmc_flash_mark[2])
@@ -334,42 +380,45 @@ void SystemParaInit(void)
 		||(flash_temp[6]!=nvmc_flash_mark[6])||(flash_temp[7]!=nvmc_flash_mark[7])||(flash_temp[8]!=nvmc_flash_mark[8])
 		||(flash_temp[9]!=nvmc_flash_mark[9])||(flash_temp[10]!=nvmc_flash_mark[10]))
 	{			 
-		nrf_addr = PARA_BASE;		
+		nrf_addr = ROM_BaseAddr.PARA_BASE;		
 		nrf_nvmc_page_erase(nrf_addr);
 
-		nrf_addr = RESERVER_BASE;
+		nrf_addr = ROM_BaseAddr.RESERVER_BASE;
 		nrf_nvmc_page_erase(nrf_addr);
 
-		nrf_addr = USER1_BASE;
+		nrf_addr = ROM_BaseAddr.USER1_BASE;
 		nrf_nvmc_page_erase(nrf_addr);
 
-		nrf_addr = USER2_BASE;
+		nrf_addr = ROM_BaseAddr.USER2_BASE;
 		nrf_nvmc_page_erase(nrf_addr);
 
-		nrf_addr = MARK_BASE;
+		nrf_addr = ROM_BaseAddr.MARK_BASE;
 		nrf_nvmc_page_erase(nrf_addr);
-				
+		
+		MSG_Erase_ALL();//²Á³ıÏûÏ¢´æ´¢Çø	
 		nrf_nvmc_write_bytes(nrf_addr,nvmc_flash_mark,11);
 	}
 	else
 	{
 		//´ò¹ı±ê¼Ç¶ÁÈ¡ÉÏ´Î´æ´¢µÄĞÅÏ¢
 		//ÄÚ²¿²ÎÊıÇø
-		nrf_addr = PARA_BASE;
+		nrf_addr = ROM_BaseAddr.PARA_BASE;
 		ROM0_Pos = Rom_Pos(nrf_addr,Rom_Record_Offset[0],Rom_Record_Length[0]);
 		//reserver area
-		nrf_addr = RESERVER_BASE;
+		nrf_addr = ROM_BaseAddr.RESERVER_BASE;
 		ROM1_Pos = Rom_Pos(nrf_addr,Rom_Record_Offset[1],Rom_Record_Length[1]);
 		//user area1
-		nrf_addr = USER1_BASE;
+		nrf_addr = ROM_BaseAddr.USER1_BASE;
 		ROM2_Pos = Rom_Pos(nrf_addr,Rom_Record_Offset[2],Rom_Record_Length[2]);
 		//user area2
-		nrf_addr = USER2_BASE;
-		ROM3_Pos = Rom_Pos(nrf_addr,Rom_Record_Offset[3],Rom_Record_Length[3]);				
+		nrf_addr = ROM_BaseAddr.USER2_BASE;
+		ROM3_Pos = Rom_Pos(nrf_addr,Rom_Record_Offset[3],Rom_Record_Length[3]);	
+		//¸üĞÂÏûÏ¢²ÎÊı
+		MSG_Find_New();
 	}
 	if(ROM0_Pos)//¸üĞÂ¹ı²ÎÊı
 	{
-		nrf_addr = PARA_BASE;
+		nrf_addr = ROM_BaseAddr.PARA_BASE;
 		base_offset = (ROM0_Pos - 1)*Rom_Record_Length[0];
 		nrf_nvmc_read_bytes(nrf_addr+base_offset,para_record,Rom_Record_Length[0]);
 	}		
