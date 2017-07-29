@@ -113,7 +113,7 @@ void Message_Radio_Rx(uint8_t times)
 	{
 		radio_select(CONFIG_CHANNEL,RADIO_RX);//切换成接收
 		ot = RADIO_MESSAGE_OT;//接收窗时间
-		while(ot--)
+		while(--ot)
 		{
 			if(radio_rcvok)
 				break;
@@ -156,11 +156,13 @@ void Raio_Deal(void)
 		Radio_Period_Send(WithoutCmd,WithWin);//发送带接收窗口
 		radio_select(CONFIG_CHANNEL,RADIO_RX);
 		ot = RADIO_RX_OT;//接收窗时间
-		while(ot--)
+		while(--ot)
 		{
 			if(radio_rcvok)
 				break;
 		}
+		if(0 == ot)
+			debug_printf("接收超时");
 	}
 	else
 	{
@@ -396,7 +398,9 @@ void Radio_RX_Deal(void)
 		}
 		else if( RADIO_RUN_CONFIG_CHANNEL == radio_run_channel)
 		{
+			debug_printf("\r\n rx config success");
 			radio_rcvok= 1;
+			
 		}
 	}
 }

@@ -88,7 +88,7 @@ int main(void)
 	#if TEST
 	function_test();
 	#endif
-	OLED_Init();
+//	OLED_Init();
 	//初始电量采集
 	nrf_delay_ms(1000);
 	battery.bat_capacity = battery_check_read();
@@ -106,7 +106,7 @@ int main(void)
 //			if(test_i<100)
 				Raio_Deal();//射频功能		
 		}
-		OLED_SHOW();
+//		OLED_SHOW();
 		__WFI();
 	}
 }
