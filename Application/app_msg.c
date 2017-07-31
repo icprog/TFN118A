@@ -33,7 +33,7 @@ typedef enum
 }pkt_seq;
 
 /************************************************* 
-@Description:消息初始化
+@Description:公共函数-消息初始化
 @Input:无
 @Output:无
 @Return:无
@@ -51,7 +51,7 @@ void MSG_Addr_Init(void)
 
 
 /************************************************* 
-@Description:擦除所有消息
+@Description:公共函数-擦除所有消息
 @Input:无
 @Output:无
 @Return:无
@@ -75,9 +75,9 @@ void MSG_Erase_ALL(void)
 	memset(&MSG_Store,0,sizeof(MSG_Store_Typedef));
 	MSG_Addr_Init();
 	
-}		
+}				
 /************************************************* 
-@Description:检查消息序列号
+@Description:公共函数-检查消息序列号
 @Input:无
 @Output:无
 @Return:无
@@ -89,7 +89,7 @@ uint8_t MSG_ROM_Check(uint32_t temp_addr)
 	return FALSE;
 }
 /************************************************* 
-@Description:查找最新消息,消息数量、最新消息存储区索引号、获取消息序列号
+@Description:公共函数-查找最新消息,消息数量、最新消息存储区索引号、获取消息序列号
 如果flash中消息数量和消息索引号不符合要求，全部擦除。
 @Input:无
 @Output:无
@@ -127,21 +127,9 @@ void MSG_Find_New(void)
 	}
 }
 
-/************************************************* 
-@Description:消息包置位
-@Input:无
-@Output:无
-@Return:无
-*************************************************/ 
-void MSG_Packet_ReSet(void)
-{
-	
-	MSG_Store.MSG_BUFF_IDX = MSG_STORE_IDX;//一条消息存储索引号置位
-	Msg_Packet.msg_pkt_seq = 0;//包序号置位
-}
 
 /************************************************* 
-@Description:消息包写入FLASH,替换最旧的消息
+@Description:公共函数-消息包写入FLASH,替换最旧的消息
 @Input:idx 最新消息索引号，一包消息
 @Output:无
 @Return:无
@@ -159,8 +147,22 @@ void MSG_Write(uint8_t idx,u8* buff)
 	nrf_nvmc_page_erase(msg_addr);
 	nrf_nvmc_write_byte(msg_addr,MSG_Store.MSG_IDX);//写入最新索引号
 }
+
 /************************************************* 
-@Description:消息头检测
+@Description:标签-消息包置位
+@Input:无
+@Output:无
+@Return:无
+*************************************************/ 
+void MSG_Packet_ReSet(void)
+{
+	
+	MSG_Store.MSG_BUFF_IDX = MSG_STORE_IDX;//一条消息存储索引号置位
+	Msg_Packet.msg_pkt_seq = 0;//包序号置位
+}
+
+/************************************************* 
+@Description:标签-消息头检测
 @Input:无
 @Output:无
 @Return:无
@@ -202,7 +204,7 @@ u16 MessageHeadCheck(uint8_t msg_head)
 }
 
 /************************************************* 
-@Description:标签消息处理
+@Description:标签-消息处理
 @Input:p_mpacket射频数据
 @Output:无
 @Return:无
@@ -235,19 +237,22 @@ u16 Message_Deal(uint8_t *p_mpacket)
 	}
 	return cmd_state;
 }
+
 /************************************************* 
-@Description:获取要下发的消息
-@Input:tag_msg_seq标签消息序号
+@Description:读写器-获取要下发的消息
+@Input:
 @Output:
 @Return:1:获取成功，0：获取失败
 *************************************************/ 
-uint8_t Message_Get(uint8_t tag_msg_seq)
+uint8_t Message_Get(uint8_t msg_head)
 {
 	uint8_t Diff;//差值
 	uint8_t i,j;
 	uint32_t addr;
 	uint8_t msg_len;
 	uint8_t reminder;//余数
+	uint8_t tag_msg_seq;//标签消息序号
+	tag_msg_seq = (msg_head&MSG_SEQ_Msk)>>MSG_SEQ_Pos;
 	if(tag_msg_seq!=MSG_Store.MSG_Seq)
 	{
 		Diff = ((MSG_Store.MSG_Seq + MSG_SEQ_MAX_NUM - tag_msg_seq)%MSG_SEQ_MAX_NUM);
@@ -257,28 +262,30 @@ uint8_t Message_Get(uint8_t tag_msg_seq)
 		{
 			if(Msg_Packet.MSG_PUSH_SEQ == *(uint8_t*)(*MSG_Store.MSG_ADDR[i]))
 			{
+				
 				addr = *MSG_Store.MSG_ADDR[i];
 				msg_len = *(uint8_t *)(addr+MSG_LEN_IDX);
-				nrf_nvmc_read_bytes(addr,MSG_Store.MSG_PUSH,(msg_len+MSG_FLASH_HEAD_LEN));
+				nrf_nvmc_read_bytes(addr,MSG_Store.MSG_PUSH,(msg_len+MSG_FLASH_HEAD_LEN));//读取数据
 				//获取分包个数，及每个分包的长度
 				Msg_Packet.PKT_PUSH_NUM = msg_len>>MSG_PACKET_OFFSET;
-				for(j=0;j<Msg_Packet.PKT_PUSH_NUM;j++)
+				for(j=0;j<Msg_Packet.PKT_PUSH_NUM;)
 				{
 					Msg_Packet.PKT_PUSH_LEN[j] = MSG_PACKET_MAX_VALUE;
 					//获取每包数据
-					my_memcpy(&Msg_Packet.PKT_PUSH_BUF[j][0],&MSG_Store.MSG_PUSH[MSG_STORE_IDX+(i<<MSG_PACKET_OFFSET)],MSG_PACKET_MAX_VALUE);
+					my_memcpy(&Msg_Packet.PKT_PUSH_BUF[j][0],&MSG_Store.MSG_PUSH[MSG_STORE_IDX+(j<<MSG_PACKET_OFFSET)],MSG_PACKET_MAX_VALUE);
+					j++;
 				}
 				reminder = msg_len%MSG_PACKET_MAX_VALUE;
 				if(reminder)
 				{
 					//获取每包数据
-					my_memcpy(&Msg_Packet.PKT_PUSH_BUF[j][0],&MSG_Store.MSG_PUSH[MSG_STORE_IDX+(i<<MSG_PACKET_OFFSET)],reminder);
+					my_memcpy(&Msg_Packet.PKT_PUSH_BUF[j][0],&MSG_Store.MSG_PUSH[MSG_STORE_IDX+(j<<MSG_PACKET_OFFSET)],reminder);
 					Msg_Packet.PKT_PUSH_LEN[j] = reminder;
 					Msg_Packet.PKT_PUSH_NUM++;//下发的分包个数
 				}
 				else
 				{
-					Msg_Packet.PKT_PUSH_LEN[j] = 0;
+//					Msg_Packet.PKT_PUSH_LEN[j] = 0;
 				}
 				Msg_Packet.PKT_PUSH_SEQ = 0;//分包序号清0
 				return TRUE;
@@ -290,7 +297,7 @@ uint8_t Message_Get(uint8_t tag_msg_seq)
 }
 
 /************************************************* 
-@Description:启动消息命令
+@Description:读写器-启动消息命令
 @Input:
 @Output:
 @Return:
@@ -308,8 +315,9 @@ void Radio_MSG_Start(uint8_t *msg_buf,uint8_t* src)
 	msg_buf[RADIO_LENGTH_IDX] = len;
 	msg_buf[len+RADIO_HEAD_LENGTH-1]=Get_Xor(msg_buf,(len+1));
 }
+
 /************************************************* 
-@Description:消息发送
+@Description:读写器-消息发送
 @Input:
 @Output:
 @Return:
@@ -320,8 +328,9 @@ void Radio_MSG_Push(uint8_t* src)
 	my_memcpy(&cmd_packet.packet[TAG_ID_IDX],&src[TAG_ID_IDX],RADIO_ID_LENGTH);//2~5目标ID
 	my_memcpy(&cmd_packet.packet[READER_ID_IDX],&DeviceID,RADIO_RID_LENGTH);//6~9读写器ID
 	cmd_packet.packet[CMD_IDX] = MESSAGE_CMD;//消息命令
+	Msg_Packet.MSG_PUSH_HEAD = 0;
 	Msg_Packet.MSG_PUSH_HEAD |=MSG_HEAD_Msk;//数据指示，表示携带消息内容
-	Msg_Packet.MSG_PUSH_HEAD |=	((Msg_Packet.MSG_PUSH_SEQ<<4)&MSG_SEQ_Msk);//下发的消息序号
+	Msg_Packet.MSG_PUSH_HEAD |=	((Msg_Packet.MSG_PUSH_SEQ<<MSG_SEQ_Pos)&MSG_SEQ_Msk);//下发的消息序号
 //	Msg_Packet.PKT_PUSH_NUM--;//发送成功再减一
 	if(Msg_Packet.PKT_PUSH_NUM-1)//消息总数减一
 	{
@@ -342,4 +351,5 @@ void Radio_MSG_Push(uint8_t* src)
 	//包++
 //	Msg_Packet.PKT_PUSH_SEQ++;//发送成功再加1
 }
+
 
