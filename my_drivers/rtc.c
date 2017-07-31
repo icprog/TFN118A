@@ -14,7 +14,7 @@
 #include "rtc.h"
 #include "app_init.h"
 
-#define TEST 1
+#define TEST 0
 #if TEST
 //rtc_typedef Global_Time = {0x20,0x02,0x28,0x23,0x59,0x50,0x07};  //年月日时分秒 星期 
 //uint8_t Global_Time[7] = {20,2,29,23,59,50,7};  //年月日时分秒 星期 
@@ -185,26 +185,72 @@ void Calendar21Century(rtc_typedef* pRTCtime)	//20xx
 	}								
 }
 
+/************************************************* 
+@Description:接收器-bcd 格式检查
+@Input:无
+@Output:无
+@Return:无
+*************************************************/ 
+uint8_t BCD_Check(uint8_t uBCD)
+{
+	if( ((uBCD>>4)>9) || ((uBCD&0x0f)>9))
+	{
+		return FALSE;
+	}
+	return TRUE;
+}
 
+/************************************************* 
+@Description:接收器-bcd 时间格式检查
+@Input:无
+@Output:无
+@Return:无
+*************************************************/ 
+uint8_t RTC_BCD_Check(rtc_typedef* pRTCtime)
+{
+	if(!BCD_Check(pRTCtime->year))
+		return FALSE;
+	if(!BCD_Check(pRTCtime->month))
+		return FALSE;
+	if(!BCD_Check(pRTCtime->day))
+		return FALSE;
+	if(!BCD_Check(pRTCtime->hour))
+		return FALSE;
+	if(!BCD_Check(pRTCtime->min))
+		return FALSE;
+	if(!BCD_Check(pRTCtime->sec))
+		return FALSE;
+	return TRUE;
+}
+
+/************************************************* 
+@Description:rtc Time_DecCheck
+@Input:无
+@Output:无
+@Return:无
+*************************************************/ 
+uint8_t Time_DecCheck(rtc_typedef RTCTime)
+{
+	if(RTCTime.month>12 || 0==RTCTime.month )
+		return FALSE;
+	if(RTCTime.day == 0)
+		return FALSE;
+	if(RTCTime.hour>23)
+		return FALSE;
+	if(RTCTime.min>59)
+		return FALSE;
+	if(RTCTime.sec)
+		return FALSE;
+	return TRUE;
+}
 /************************************************* 
 @Description:rtc时间设置
 @Input:无
 @Output:无
 @Return:无
 *************************************************/ 
-#define RTC_Sec_Pos	0
-#define RTC_Sec_Msk (0x3f<<RTC_Sec_Pos)
-#define RTC_Min_Pos 6
-#define RTC_Min_Msk (0x3f<<RTC_Min_Pos)
-#define RTC_Hour_Pos 12
-#define RTC_Hour_Msk (0x1f<<RTC_Hour_Pos)
-#define RTC_Day_Pos 17
-#define RTC_Day_Msk (0x1f << RTC_Day_Pos)
-#define RTC_Month_Pos 22
-#define RTC_Month_Msk ( 0x0f << RTC_Month_Pos )
-#define RTC_Year_Pos 26
-#define RTC_Year_Msk (0x1f << RTC_Year_Pos)
-void RTC_Time_Set(uint32_t RTCtime,uint8_t Week)
+
+void RTC_Time_Set(uint32_t RTCtime)
 {
 	rtc_typedef  temp_time;
 	#if TEST
@@ -219,14 +265,18 @@ void RTC_Time_Set(uint32_t RTCtime,uint8_t Week)
 	temp_time.day = ((RTCtime&RTC_Day_Msk)>>RTC_Day_Pos);
 	temp_time.month = ((RTCtime&RTC_Month_Msk)>>RTC_Month_Pos);
 	temp_time.year = ((RTCtime&RTC_Year_Msk)>>RTC_Year_Pos);
-	//转成BCD
-	Global_Time.sec = DecToBCD(temp_time.sec);//second
-	Global_Time.min = DecToBCD(temp_time.min);//minute
-	Global_Time.hour = DecToBCD(temp_time.hour);//hour
-	Global_Time.day = DecToBCD(temp_time.day);//day
-	Global_Time.month = DecToBCD(temp_time.month);//month
-	Global_Time.year = DecToBCD((uint8_t)temp_time.year);//year
-	Global_Time.week  = get_day_of_week(Global_Time);
+	
+	if(TRUE == Time_DecCheck(temp_time))
+	{
+		//转成BCD
+		Global_Time.sec = DecToBCD(temp_time.sec);//second
+		Global_Time.min = DecToBCD(temp_time.min);//minute
+		Global_Time.hour = DecToBCD(temp_time.hour);//hour
+		Global_Time.day = DecToBCD(temp_time.day);//day
+		Global_Time.month = DecToBCD(temp_time.month);//month
+		Global_Time.year = DecToBCD((uint8_t)temp_time.year);//year
+		Global_Time.week  = get_day_of_week(Global_Time);
+	}
 }
 
 /************************************************* 
@@ -246,18 +296,6 @@ DAY_OF_WEEK get_day_of_week(rtc_typedef RTCTime)
 #else 
 
 
-#define RTC_Sec_Pos	0
-#define RTC_Sec_Msk (0x3f<<RTC_Sec_Pos)
-#define RTC_Min_Pos 6
-#define RTC_Min_Msk (0x3f<<RTC_Min_Pos)
-#define RTC_Hour_Pos 12
-#define RTC_Hour_Msk (0x1f<<RTC_Hour_Pos)
-#define RTC_Day_Pos 17
-#define RTC_Day_Msk (0x1f << RTC_Day_Pos)
-#define RTC_Month_Pos 22
-#define RTC_Month_Msk ( 0x0f << RTC_Month_Pos )
-#define RTC_Year_Pos 26
-#define RTC_Year_Msk (0x1f << RTC_Year_Pos)
 /************************************************* 
 @Description:rtc时间累加，返回时间
 @Input:无

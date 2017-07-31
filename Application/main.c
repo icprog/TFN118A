@@ -92,7 +92,7 @@ int main(void)
 	//初始电量采集
 	nrf_delay_ms(1000);
 	battery.bat_capacity = battery_check_read();
-	RTC_Time_Set(0,1);
+	RTC_Time_Set(0);
 	while(1)
 	{
 //		Key_Deal();//按键

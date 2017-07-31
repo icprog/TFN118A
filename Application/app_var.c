@@ -11,7 +11,7 @@ const uint8_t nvmc_flash_mark[11]={0x54,0x46,0x4E,0x31,0x31,0x38,0x41,0x00,0x00,
 uint32_t nrf_addr;//flash地址
 uint8_t Rom_Record_Offset[4] = {16,16,32,32};//4个扇区对应的最大偏移量,分别对应参数区、保留区、用户区1、用户区2
 uint8_t Rom_Record_Length[4] = {16,16,16,16};//每条记录对应的字节数
-uint8_t ActiveMode;//周期发送秒标志
+uint8_t ActiveMode;//周期发送秒标志 1:活动模式 0：仓储模式
 
 uint16_t Key_Alarm_Delay;//按键报警延时
 #define delay_interval   40  //40ms

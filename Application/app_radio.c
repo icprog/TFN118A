@@ -17,7 +17,12 @@ typedef enum
 	WithWin
 }WIN_Typedef;
 
-
+//是否等待发送完成
+typedef enum
+{
+	SendNoWait=0,
+	SendWait=1
+}Send_Wait_Typedef;
 
 extern uint8_t packet[PACKET_PAYLOAD_MAXSIZE];
 extern uint8_t DeviceID[4];
@@ -31,12 +36,12 @@ Payload_Typedef cmd_packet;//命令射频处理
 extern uint8_t radio_status;//射频运行状态
 uint8_t radio_run_channel;//射频运行通道 
 
-//标签状态字
-uint8_t State_LP_Alarm;//低电报警
-uint8_t State_Key_Alram;//按键报警
-const static uint8_t State_WithSensor = 1;//1:传感标签 0：非传感标签
+
 //uint8_t State_WithWin;
 uint8_t State_Mode;//模式
+//标签状态字
+TAG_STATE_Typedef TAG_STATE;//标签
+const static uint8_t State_WithSensor = 1;//1:传感标签 0：非传感标签
 //传感数据
 extern MSG_Store_Typedef MSG_Store;//消息定义消息序列号0~7
 extern Message_Typedef Msg_Packet;
@@ -51,7 +56,7 @@ extern Message_Typedef Msg_Packet;
 #endif
 uint32_t RADIO_RX_OT = RADIO_RX_OT_CONST;
 void radio_pwr(uint8_t txpower);
-static void Radio_Period_Send(uint8_t cmdflag,uint8_t winflag);
+static void Radio_Period_Send(uint8_t cmdflag,uint8_t winflag,uint8_t wait_send_finish);
 
 //文件操作
 File_Typedef f_para;//文件操作命令数据缓存
@@ -136,7 +141,7 @@ void Message_Radio_Rx(uint8_t times)
 			else
 			{
 				ot = RADIO_MESSAGE_OT;//接收窗时间
-				Radio_Period_Send(WithCmd,WithWin);//重传命令
+				Radio_Period_Send(WithCmd,WithWin,SendWait);//重传命令
 				debug_printf("\r\n重传命令%d",times);
 				times--;
 			}
@@ -163,7 +168,7 @@ void Raio_Deal(void)
 	if(wincount >= win_interval)//携带接收窗口
 	{
 		wincount = 0;
-		Radio_Period_Send(WithoutCmd,WithWin);//发送带接收窗口
+		Radio_Period_Send(WithoutCmd,WithWin,SendWait);//发送带接收窗口
 		radio_select(CONFIG_CHANNEL,RADIO_RX);
 //		while(1);
 //		debug_printf("\r\n");
@@ -186,7 +191,7 @@ void Raio_Deal(void)
 	else
 	{
 		if(ActiveMode)
-			Radio_Period_Send(WithoutCmd,WithoutWin);//发送不带接收窗
+			Radio_Period_Send(WithoutCmd,WithoutWin,SendWait);//发送不带接收窗
 	}
 	if(radio_rcvok)
 	{
@@ -198,30 +203,33 @@ void Raio_Deal(void)
 }
 
 /***********************************************************
-Description:周期发送射频信息,并等待发送完成
-Input：	cmdflag - 命令返回 1：返回命令 0：常规发送
+@Description:周期发送射频信息,并等待发送完成
+@Input：	cmdflag - 命令返回 1：返回命令 0：常规发送
 				winflag - 是否携带窗口
-Output：无
-Return:无
+				wait_send_finish:1:等待发送完成，0:不等待
+@Output：无
+@Return:无
 ************************************************************/
-static void Radio_Period_Send(uint8_t cmdflag,uint8_t winflag)
+static void Radio_Period_Send(uint8_t cmdflag,uint8_t winflag,uint8_t wait_send_finish)
 {
 	uint32_t ot = 0;
 	my_memset(packet,0,PACKET_PAYLOAD_MAXSIZE);
-	packet[RADIO_S0_IDX] = RADIO_S0_DIR_UP;
-	packet[RADIO_LENGTH_IDX] = 0; //payload长度，后续更新
-	my_memcpy(packet+TAG_ID_IDX,DeviceID,4);//2~5标签ID
+
 	if(cmdflag)
 	{
 		memcpy(packet,cmd_packet.packet,cmd_packet.length+RADIO_HEAD_LENGTH);//更新所有包
 	}
 	else
 	{
-		packet[TAG_STATE_IDX] |= State_LP_Alarm << TAG_LOWPWR_Pos;//低电指示
-		packet[TAG_STATE_IDX] |= State_Key_Alram << TAG_KEY_Pos;//按键指示
+		packet[RADIO_S0_IDX] = RADIO_S0_DIR_UP;
+		packet[RADIO_LENGTH_IDX] = 0; //payload长度，后续更新
+		my_memcpy(packet+TAG_ID_IDX,DeviceID,4);//2~5标签ID
+		TAG_STATE.State_Mode = ActiveMode;//模式
+		packet[TAG_STATE_IDX] |= TAG_STATE.State_LP_Alarm << TAG_LOWPWR_Pos;//低电指示
+		packet[TAG_STATE_IDX] |= TAG_STATE.State_Key_Alram << TAG_KEY_Pos;//按键指示
 		packet[TAG_STATE_IDX] |= State_WithSensor << TAG_WITHSENSOR_Pos;//传感指示
 		packet[TAG_STATE_IDX] |= winflag << TAG_WITHWIN_Pos;//接收窗指示
-		packet[TAG_STATE_IDX] |= State_Mode << TAG_MODE_Pos;//模式指示
+		packet[TAG_STATE_IDX] |= TAG_STATE.State_Mode << TAG_MODE_Pos;//模式指示
 		packet[TAG_VERSION_IDX] |= TAG_HDVER_NUM << TAG_HDVERSION_POS;//硬件版本号
 		packet[TAG_VERSION_IDX] |= TAG_SFVER_NUM << TAG_SFVERSION_POS;//软件版本号
 		packet[TAG_STYPE_IDX] = TAG_SENSORTYPE_SchoolWatch;//标签类型
@@ -238,12 +246,16 @@ static void Radio_Period_Send(uint8_t cmdflag,uint8_t winflag)
 	{
 		radio_select(DATA_CHANNEL,RADIO_TX);
 	}
-	radio_sndok = 0;
-	while(radio_sndok == 0)
+	//是否等待发送完成
+	if(1 == wait_send_finish)
 	{
-		ot++;
-		if(ot > RADIO_OVER_TIME)
-			break;
+		radio_sndok = 0;
+		while(radio_sndok == 0)
+		{
+			ot++;
+			if(ot > RADIO_OVER_TIME)
+				break;
+		}		
 	}
 }
 
@@ -325,9 +337,9 @@ void Radio_Cmd_Deal(void)
 	
 		if((packet[RADIO_S0_IDX]&RADIO_S0_DIR_Msk) == RADIO_S0_DIR_DOWN) //下行
 		{
-			my_memcpy(cmd_packet.packet,packet,packet[RADIO_LENGTH_IDX]+2);
 			if(memcmp(DeviceID,packet + TAG_ID_IDX,4)== 00)//点对点
 			{
+				my_memcpy(cmd_packet.packet,packet,packet[RADIO_LENGTH_IDX]+RADIO_HEAD_LENGTH);
 				cmd = cmd_packet.packet[CMD_IDX];
 				switch(cmd)
 				{
@@ -343,10 +355,10 @@ void Radio_Cmd_Deal(void)
 						{
 							cmd_packet.length = CMD_ACK_FIX_LENGTH;
 						}
-						cmd_packet.packet[RADIO_S0_IDX] = RADIO_S0_DIR_UP;
+						cmd_packet.packet[RADIO_S0_IDX] = RADIO_S0_DIR_UP;//上行
 						cmd_packet.packet[RADIO_LENGTH_IDX] = cmd_packet.length;
 						cmd_packet.packet[cmd_packet.length+RADIO_HEAD_LENGTH-1]=Get_Xor(cmd_packet.packet,cmd_packet.length+1);
-						Radio_Period_Send(WithCmd,WithoutWin);
+						Radio_Period_Send(WithCmd,WithoutWin,SendWait);
 						
 						break;
 					case FILE_CMD_WRITE://文件写入-点对点
@@ -358,7 +370,7 @@ void Radio_Cmd_Deal(void)
 						cmd_packet.length = CMD_ACK_FIX_LENGTH;
 						cmd_packet.packet[RADIO_LENGTH_IDX] = cmd_packet.length;
 						cmd_packet.packet[cmd_packet.length+RADIO_HEAD_LENGTH-1]=Get_Xor(cmd_packet.packet,cmd_packet.length+1);
-						Radio_Period_Send(WithCmd,WithoutWin);		
+						Radio_Period_Send(WithCmd,WithoutWin,SendWait);		
 						break;
 					default:break;
 					case  MESSAGE_CMD://消息处理，每次只接收一条消息
@@ -372,28 +384,36 @@ void Radio_Cmd_Deal(void)
 							cmd_packet.length = CMD_ACK_FIX_LENGTH;
 							cmd_packet.packet[RADIO_LENGTH_IDX] = cmd_packet.length;
 							cmd_packet.packet[cmd_packet.length+RADIO_HEAD_LENGTH-1]=Get_Xor(cmd_packet.packet,cmd_packet.length+1);							
-							Radio_Period_Send(WithCmd,WithWin);
+							Radio_Period_Send(WithCmd,WithWin,SendNoWait);
 							debug_printf("\r\n成功接收消息下发通知命令");
+							memcpy(Msg_Packet.MSG_PUSH_RID,cmd_packet.packet,RADIO_ID_LENGTH);
 							Msg_Packet.MSG_FLAG = MSG_START;
 							MSG_Packet_ReSet();
 						}
 						else if(MSG_START == Msg_Packet.MSG_FLAG)
 						{
-							cmd_state = Message_Deal(cmd_packet.packet);
-							cmd_packet.packet[EXCUTE_STATE_IDX] = cmd_state>>8;
-							cmd_packet.packet[EXCUTE_STATE_IDX+1] = cmd_state;//告诉接收器，收到命令
-							cmd_packet.packet[RADIO_S0_IDX] = RADIO_S0_DIR_UP;
-							cmd_packet.length = CMD_ACK_FIX_LENGTH;
-							cmd_packet.packet[RADIO_LENGTH_IDX] = cmd_packet.length;
-							cmd_packet.packet[cmd_packet.length+RADIO_HEAD_LENGTH-1]=Get_Xor(cmd_packet.packet,cmd_packet.length+1);
-							Radio_Period_Send(WithCmd,WithWin);
-							if(cmd_state == MSG_START_END_VALUE)//消息接收完成
+							//必须是同一个接收器
+							if(memcmp(Msg_Packet.MSG_PUSH_RID,cmd_packet.packet + READER_ID_IDX,4)== 00)//点对点接收器
 							{
-								Radio_Work_Mode = Stand_Send;
-								debug_printf("\r\n消息接收完成");
-								Msg_Packet.MSG_FLAG = MSG_IDLE;
+								cmd_state = Message_Deal(cmd_packet.packet);
+								cmd_packet.packet[EXCUTE_STATE_IDX] = cmd_state>>8;
+								cmd_packet.packet[EXCUTE_STATE_IDX+1] = cmd_state;//告诉接收器，收到命令
+								cmd_packet.packet[RADIO_S0_IDX] = RADIO_S0_DIR_UP;
+								cmd_packet.length = CMD_ACK_FIX_LENGTH;
+								cmd_packet.packet[RADIO_LENGTH_IDX] = cmd_packet.length;
+								cmd_packet.packet[cmd_packet.length+RADIO_HEAD_LENGTH-1]=Get_Xor(cmd_packet.packet,cmd_packet.length+1);
+								Radio_Period_Send(WithCmd,WithWin,SendWait);
+								if(cmd_state == MSG_START_END_VALUE)//消息接收完成
+								{
+									Radio_Work_Mode = Stand_Send;
+									debug_printf("\r\n消息接收完成");
+									Msg_Packet.MSG_FLAG = MSG_IDLE;
+								}								
 							}
+
 						}
+					case TIME_SET_CMD:
+						
 				}							
 			}
 			else if(READER_ID_MBYTE == packet[TAG_ID_IDX])//广播

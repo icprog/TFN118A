@@ -11,9 +11,17 @@ typedef enum
 	RADIO_RUN_CONFIG_CHANNEL ,
 	RADIO_RUN_DATA_CHANNEL
 }RADIO_CHANNEL;
+//±êÇ©×´Ì¬×Ö
+typedef struct
+{
+	uint8_t State_LP_Alarm;//µÍµç±¨¾¯ 1:µÍµç
+	uint8_t State_Key_Alram;//°´¼ü±¨¾¯ 1£º°´¼ü°´ÏÂ£¬ÉÏ±¨10s
+	uint8_t State_Mode;//Ä£Ê½ 1£º»î¶¯Ä£Ê½ 0£º²Ö´¢Ä£Ê½
+	uint8_t State_Update_Time;//1
+}TAG_STATE_Typedef;
 
 extern void radio_pwr(uint8_t txpower);
-extern void Raio_Deal(void);//å°„é¢‘å‘¨æœŸå‘é€
+extern void Raio_Deal(void);//ÉäÆµÖÜÆÚ·¢ËÍ
 #endif
 
 

@@ -24,7 +24,8 @@ uint8_t Key_Scan_En;//按键扫描使能标志位
 
 void Key_Func(void);//按键功能处理函数
 extern uint8_t State_Key_Alram;//按键报警
-
+//标签状态字
+extern TAG_STATE_Typedef TAG_STATE;//标签
 typedef enum
 {
 	no_press,
@@ -290,7 +291,7 @@ void Key_Func(void)
 			break;
 		case long_press:
 			key_cnt = 3;
-			State_Key_Alram = 1;
+			TAG_STATE.State_Key_Alram = 1;
 			k1.Value = no_press;
 			break;
 		case no_press:
