@@ -95,8 +95,8 @@ int main(void)
 	RTC_Time_Set(0,1);
 	while(1)
 	{
-		Key_Deal();//按键
-		Bat_Detect();//电量采集
+//		Key_Deal();//按键
+//		Bat_Detect();//电量采集
 		//1s定时
 		if(rtc_flag)
 		{

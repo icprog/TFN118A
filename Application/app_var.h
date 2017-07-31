@@ -276,6 +276,7 @@ typedef struct
 	uint8_t msg_head;		//消息头
 	uint8_t msg_pkt_len;	//下发的一个包中的信息长度
 	uint8_t msg_idx;		//消息索引
+	uint8_t MSG_FLAG;
 	uint8_t MSG_PUSH_HEAD;  //下发的包头
 	uint8_t PKT_PUSH_LEN[4];//包0~3长度
 	uint8_t PKT_PUSH_BUF[4][32];//包0~3数据

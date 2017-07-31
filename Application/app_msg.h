@@ -36,7 +36,8 @@ typedef enum
 	MSG_Packet1=3,
 	MSG_Packet2=4,
 	MSG_Packet3=5,
-	MSG_End=6
+	MSG_End=6,
+	MSG_START=7
 }MSG_PUSH_STATE_Typedef;
 
 typedef struct
@@ -64,5 +65,6 @@ void MSG_Write(uint8_t idx,u8* buff);
 uint8_t Message_Get(uint8_t tag_msg_seq);
 void Radio_MSG_Start(uint8_t *msg_buf,uint8_t* src);
 void Radio_MSG_Push(uint8_t* src);
+void MSG_Packet_ReSet(void);
 #endif
 

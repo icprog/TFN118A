@@ -39,9 +39,16 @@ const static uint8_t State_WithSensor = 1;//1:传感标签 0：非传感标签
 uint8_t State_Mode;//模式
 //传感数据
 extern MSG_Store_Typedef MSG_Store;//消息定义消息序列号0~7
+extern Message_Typedef Msg_Packet;
 
-#define RADIO_RX_OT_CONST 	1000
-#define RADIO_MESSAGE_OT    2000
+
+#ifdef LOG_ON
+#define RADIO_RX_OT_CONST 	10000000
+#define RADIO_MESSAGE_OT    20000000
+#else
+#define RADIO_RX_OT_CONST 	890
+#define RADIO_MESSAGE_OT    3000
+#endif
 uint32_t RADIO_RX_OT = RADIO_RX_OT_CONST;
 void radio_pwr(uint8_t txpower);
 static void Radio_Period_Send(uint8_t cmdflag,uint8_t winflag);
@@ -123,6 +130,7 @@ void Message_Radio_Rx(uint8_t times)
 			if(0 ==  times)
 			{
 				Radio_Work_Mode = Stand_Send;//超时，退出
+				Msg_Packet.MSG_FLAG = MSG_IDLE;
 				debug_printf("\r\n接收超时");
 			}
 			else
@@ -157,6 +165,8 @@ void Raio_Deal(void)
 		wincount = 0;
 		Radio_Period_Send(WithoutCmd,WithWin);//发送带接收窗口
 		radio_select(CONFIG_CHANNEL,RADIO_RX);
+//		while(1);
+//		debug_printf("\r\n");
 		ot = RADIO_RX_OT;//接收窗时间
 		while(--ot)
 		{
@@ -363,9 +373,11 @@ void Radio_Cmd_Deal(void)
 							cmd_packet.packet[RADIO_LENGTH_IDX] = cmd_packet.length;
 							cmd_packet.packet[cmd_packet.length+RADIO_HEAD_LENGTH-1]=Get_Xor(cmd_packet.packet,cmd_packet.length+1);							
 							Radio_Period_Send(WithCmd,WithWin);
-							debug_printf("成功接收消息下发通知命令");
+							debug_printf("\r\n成功接收消息下发通知命令");
+							Msg_Packet.MSG_FLAG = MSG_START;
+							MSG_Packet_ReSet();
 						}
-						else
+						else if(MSG_START == Msg_Packet.MSG_FLAG)
 						{
 							cmd_state = Message_Deal(cmd_packet.packet);
 							cmd_packet.packet[EXCUTE_STATE_IDX] = cmd_state>>8;
@@ -379,6 +391,7 @@ void Radio_Cmd_Deal(void)
 							{
 								Radio_Work_Mode = Stand_Send;
 								debug_printf("\r\n消息接收完成");
+								Msg_Packet.MSG_FLAG = MSG_IDLE;
 							}
 						}
 				}							

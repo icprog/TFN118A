@@ -224,10 +224,11 @@ u16 Message_Deal(uint8_t *p_mpacket)
 		{
 			MSG_Store.MSG_Seq = ((p_mpacket[MSG_HEAD_IDX] &MSG_SEQ_Msk)>>MSG_SEQ_Pos);//更新包序号
 			MSG_Store.MSG_BUFF[MSG_SEQ_IDX] = MSG_Store.MSG_Seq;//存储包序号
-			MSG_Store.MSG_BUFF[MSG_LEN_IDX] = MSG_Store.MSG_BUFF_IDX - 1;//MSG_BUFF_IDX+1-2
+			MSG_Store.MSG_BUFF[MSG_LEN_IDX] = MSG_Store.MSG_BUFF_IDX - MSG_FLASH_HEAD_LEN;//MSG_BUFF_IDX-2
 			MSG_Write(MSG_Store.MSG_IDX,MSG_Store.MSG_BUFF);
 			cmd_state = MSG_START_END_VALUE;
 			debug_printf("\r\n包接收完成");
+			MSG_Packet_ReSet();//包接收完成置位
 			return cmd_state;
 		}
 		cmd_state = (p_mpacket[MSG_HEAD_IDX]<<8)|0x00;
