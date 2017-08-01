@@ -116,6 +116,8 @@ typedef struct
 #define TAG_WITHWIN_Pos									3
 #define TAG_MODE_Pos									4
 #define TAG_WIHTWIN_Msk									0x08
+#define TAG_TIMEUPDATE_Pos								5
+#define TAG_TIMEUPDATE_Msk 								0x20
 //∞Ê±æ–≈œ¢ 
 #define TAG_HDVERSION_POS								4
 #define TAG_SFVERSION_POS								0

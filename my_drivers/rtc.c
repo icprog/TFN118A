@@ -14,6 +14,7 @@
 #include "rtc.h"
 #include "app_init.h"
 
+
 #define TEST 0
 #if TEST
 //rtc_typedef Global_Time = {0x20,0x02,0x28,0x23,0x59,0x50,0x07};  //年月日时分秒 星期 
@@ -24,7 +25,8 @@ rtc_typedef Global_Time = {0x20,0x12,0x31,0x23,0x59,0x50,0x07};  //年月日时分秒 
 #else
 rtc_typedef Global_Time = {0x17,0x07,0x14,0x15,0x09,0x00,0x05};  //年月日时分秒 星期 
 #endif
-
+//标签状态字
+extern TAG_STATE_Typedef TAG_STATE;//标签
 uint8_t rtc_flag;//定时，射频发送
 //if(1==get_uart1_ready(0xffff))
 //{
@@ -239,7 +241,7 @@ uint8_t Time_DecCheck(rtc_typedef RTCTime)
 		return FALSE;
 	if(RTCTime.min>59)
 		return FALSE;
-	if(RTCTime.sec)
+	if(RTCTime.sec>59)
 		return FALSE;
 	return TRUE;
 }
@@ -249,7 +251,6 @@ uint8_t Time_DecCheck(rtc_typedef RTCTime)
 @Output:无
 @Return:无
 *************************************************/ 
-
 void RTC_Time_Set(uint32_t RTCtime)
 {
 	rtc_typedef  temp_time;
@@ -276,6 +277,7 @@ void RTC_Time_Set(uint32_t RTCtime)
 		Global_Time.month = DecToBCD(temp_time.month);//month
 		Global_Time.year = DecToBCD((uint8_t)temp_time.year);//year
 		Global_Time.week  = get_day_of_week(Global_Time);
+		TAG_STATE.State_Update_Time = Time_NoUpdate;
 	}
 }
 
@@ -394,6 +396,7 @@ void RTC_Time_Set(uint32_t RTCtime)
 @Output:无
 @Return:无
 *************************************************/ 
+
 void RTC0_IRQHandler(void)
 {
 	if(NRF_RTC0->EVENTS_COMPARE[0])
@@ -403,6 +406,10 @@ void RTC0_IRQHandler(void)
 //		rtc_update_interval();
 		rtc_flag=1;
 		Calendar21Century(&Global_Time);
+		if(Global_Time.hour == 0x00&&Global_Time.min == 00 && Global_Time.sec == 0x00)
+		{
+			TAG_STATE.State_Update_Time = Time_Update;
+		}
 	}
 }
 

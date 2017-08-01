@@ -8,7 +8,6 @@
 extern uint8_t rtc_flag;//定时，射频发送
 
 
-
 uint8_t rtc0_cnt;//定时器计数
 #define bat_chr_cycle 1 //1s采集一次
 #define bat_cycle 60 //60s采集一次
@@ -88,7 +87,7 @@ int main(void)
 	#if TEST
 	function_test();
 	#endif
-//	OLED_Init();
+	OLED_Init();
 	//初始电量采集
 	nrf_delay_ms(1000);
 	battery.bat_capacity = battery_check_read();
@@ -105,8 +104,9 @@ int main(void)
 			test_i++;
 //			if(test_i<100)
 				Raio_Deal();//射频功能		
+
 		}
-//		OLED_SHOW();
+		OLED_SHOW();
 		__WFI();
 	}
 }

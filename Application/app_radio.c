@@ -2,6 +2,7 @@
 #include "string.h" 
 #include "app_msg.h"
 #include "Debug_log.h"
+#include "rtc.h"
 //需要修改的参数
 #define win_interval 3//标签开接收窗口间隔
 //携带命令
@@ -40,7 +41,7 @@ uint8_t radio_run_channel;//射频运行通道
 //uint8_t State_WithWin;
 uint8_t State_Mode;//模式
 //标签状态字
-TAG_STATE_Typedef TAG_STATE;//标签
+TAG_STATE_Typedef TAG_STATE = {0,0,0,1};//标签
 const static uint8_t State_WithSensor = 1;//1:传感标签 0：非传感标签
 //传感数据
 extern MSG_Store_Typedef MSG_Store;//消息定义消息序列号0~7
@@ -51,7 +52,7 @@ extern Message_Typedef Msg_Packet;
 #define RADIO_RX_OT_CONST 	10000000
 #define RADIO_MESSAGE_OT    20000000
 #else
-#define RADIO_RX_OT_CONST 	890
+#define RADIO_RX_OT_CONST 	900
 #define RADIO_MESSAGE_OT    3000
 #endif
 uint32_t RADIO_RX_OT = RADIO_RX_OT_CONST;
@@ -179,7 +180,10 @@ void Raio_Deal(void)
 				break;
 				
 		}
-
+		if(0 == ot)
+		{
+			debug_printf("\r\n接收超时");
+		}
 		#ifdef LOG_ON
 		if(0 == ot)
 		{
@@ -230,6 +234,7 @@ static void Radio_Period_Send(uint8_t cmdflag,uint8_t winflag,uint8_t wait_send_
 		packet[TAG_STATE_IDX] |= State_WithSensor << TAG_WITHSENSOR_Pos;//传感指示
 		packet[TAG_STATE_IDX] |= winflag << TAG_WITHWIN_Pos;//接收窗指示
 		packet[TAG_STATE_IDX] |= TAG_STATE.State_Mode << TAG_MODE_Pos;//模式指示
+		packet[TAG_STATE_IDX] |= TAG_STATE.State_Update_Time << TAG_TIMEUPDATE_Pos;//模式指示
 		packet[TAG_VERSION_IDX] |= TAG_HDVER_NUM << TAG_HDVERSION_POS;//硬件版本号
 		packet[TAG_VERSION_IDX] |= TAG_SFVER_NUM << TAG_SFVERSION_POS;//软件版本号
 		packet[TAG_STYPE_IDX] = TAG_SENSORTYPE_SchoolWatch;//标签类型
@@ -332,6 +337,7 @@ void Radio_Cmd_Deal(void)
 	uint8_t cmd;
 	uint16_t cmd_state;
 	cmd_packet.length = 0;
+	uint32_t rtc_time;
 	// if(radio_rcvok)
 	// {
 	
@@ -386,7 +392,7 @@ void Radio_Cmd_Deal(void)
 							cmd_packet.packet[cmd_packet.length+RADIO_HEAD_LENGTH-1]=Get_Xor(cmd_packet.packet,cmd_packet.length+1);							
 							Radio_Period_Send(WithCmd,WithWin,SendNoWait);
 							debug_printf("\r\n成功接收消息下发通知命令");
-							memcpy(Msg_Packet.MSG_PUSH_RID,cmd_packet.packet,RADIO_ID_LENGTH);
+							memcpy(Msg_Packet.MSG_PUSH_RID,cmd_packet.packet+READER_ID_IDX,RADIO_ID_LENGTH);
 							Msg_Packet.MSG_FLAG = MSG_START;
 							MSG_Packet_ReSet();
 						}
@@ -413,7 +419,11 @@ void Radio_Cmd_Deal(void)
 
 						}
 					case TIME_SET_CMD:
+						rtc_time = (cmd_packet.packet[CMD_IDX+1] << 24)|(cmd_packet.packet[CMD_IDX+2] <<16)
+						|(cmd_packet.packet[CMD_IDX+3]<<8)|(cmd_packet.packet[CMD_IDX+4]); 
+						RTC_Time_Set(rtc_time);
 						
+					break;
 				}							
 			}
 			else if(READER_ID_MBYTE == packet[TAG_ID_IDX])//广播
