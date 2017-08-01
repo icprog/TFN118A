@@ -1,4 +1,6 @@
 #校园腕带  
+## 采用KEIL工程 
+![image](https://github.com/joechenchen/TFN118A/images/project.png) 
 1. 马达控制
 2. 电量采集
 3. 按键扫描
