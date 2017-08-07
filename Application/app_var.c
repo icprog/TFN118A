@@ -174,7 +174,7 @@ uint8_t Read_Para(File_Typedef f1_para,uint8_t *p_packet)
 			break;
 	}
 	//长度和偏移量边界检查
-	if(f1_para.length>=max_length || (f1_para.offset>=max_offset && f1_para.offset<FILE_OFFSET_RNEW))
+	if(f1_para.length>max_length || (f1_para.offset>=max_offset && f1_para.offset<FILE_OFFSET_RNEW))
 	{
 		cmd_state = FILE_ERR << 8 | FILE_BODER_ERR;
 	}
