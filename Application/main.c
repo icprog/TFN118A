@@ -12,34 +12,7 @@ uint8_t rtc0_cnt;//定时器计数
 #define bat_chr_cycle 1 //1s采集一次
 #define bat_cycle 60 //60s采集一次
 extern bat_typedef battery;
-/************************************************* 
-@Description:硬件功能测试
-@Input:无
-@Output:
-@Return:无
-*************************************************/ 
-#define TEST 0
-#if TEST
-void function_test(void)
-{
 
-//	Motor_Run();
-//	nrf_delay_ms(250);
-//	Motor_Stop();
-	OLED_Init();
-//	lis3dhInit();
-	nrf_delay_ms(1000);
-	RTC_Time_Set(0,1);
-	
-	while(1)
-	{
-		OLED_Test();
-		Key_Deal();
-		nrf_delay_ms(1000);
-		battery.bat_capacity = battery_check_read();	
-	}
-}
-#endif
 
 #if TFN118A
 /************************************************* 
