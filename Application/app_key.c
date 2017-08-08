@@ -1,44 +1,44 @@
 #include "app_key.h"
 #include "app_init.h"
 /*******************************************************************************
-** °æÈ¨:		
-** ÎÄ¼şÃû: 		app_key.c
-** °æ±¾£º  		1.0
-** ¹¤×÷»·¾³: 	MDK-ARM 5.23
-** ×÷Õß: 		cc
-** Éú³ÉÈÕÆÚ: 	2017-07-13
-** ¹¦ÄÜ:		  
-** Ïà¹ØÎÄ¼ş:	app_key.h
-** ĞŞ¸ÄÈÕÖ¾£º	
-** °æÈ¨ËùÓĞ   
+** ç‰ˆæƒ:		
+** æ–‡ä»¶å: 		app_key.c
+** ç‰ˆæœ¬ï¼š  		1.0
+** å·¥ä½œç¯å¢ƒ: 	MDK-ARM 5.23
+** ä½œè€…: 		cc
+** ç”Ÿæˆæ—¥æœŸ: 	2017-07-13
+** åŠŸèƒ½:		  
+** ç›¸å…³æ–‡ä»¶:	app_key.h
+** ä¿®æ”¹æ—¥å¿—ï¼š	
+** ç‰ˆæƒæ‰€æœ‰   
 *******************************************************************************/
 
-uint16_t key_tim;//¼ÆÊıÖµ£¬¼ä¸ô40ms
-uint16_t key_double_tim;//¼ÇÂ¼µ¥»úºó£¬°´¼üÌ§ÆğÊ±¼ä
-uint16_t key_up_tim;//°´¼üÌ§Æğ¼ÆÊ±
+uint16_t key_tim;//è®¡æ•°å€¼ï¼Œé—´éš”40ms
+uint16_t key_double_tim;//è®°å½•å•æœºåï¼ŒæŒ‰é”®æŠ¬èµ·æ—¶é—´
+uint16_t key_up_tim;//æŒ‰é”®æŠ¬èµ·è®¡æ—¶
  
 #define key_double_interval 12   //480ms
 #define key_up_delay (key_double_interval*2)
 extern uint16_t Key_Alarm_Delay;
-uint8_t Key_Scan_En;//°´¼üÉ¨ÃèÊ¹ÄÜ±êÖ¾Î»
+uint8_t Key_Scan_En;//æŒ‰é”®æ‰«æä½¿èƒ½æ ‡å¿—ä½
 
-void Key_Func(void);//°´¼ü¹¦ÄÜ´¦Àíº¯Êı
-extern uint8_t State_Key_Alram;//°´¼ü±¨¾¯
-//±êÇ©×´Ì¬×Ö
-extern TAG_STATE_Typedef TAG_STATE;//±êÇ©
+void Key_Func(void);//æŒ‰é”®åŠŸèƒ½å¤„ç†å‡½æ•°
+extern uint8_t State_Key_Alram;//æŒ‰é”®æŠ¥è­¦
+//æ ‡ç­¾çŠ¶æ€å­—
+extern TAG_STATE_Typedef TAG_STATE;//æ ‡ç­¾
 typedef enum
 {
 	no_press,
-	short_press=1,//¶Ì°´
-	double_press,//Ë«»÷
-	long_press//³¤°´
+	short_press=1,//çŸ­æŒ‰
+	double_press,//åŒå‡»
+	long_press//é•¿æŒ‰
 }Key_Value;
 
 //typedef struct
 //{
-//	uint8_t short_press_happen;//¶Ì°´±êÖ¾Î»
-//	uint8_t double_press_happen;//Ë«»÷±êÖ¾Î»
-//	uint8_t long_press_happen;//³¤°´±êÖ¾Î»	
+//	uint8_t short_press_happen;//çŸ­æŒ‰æ ‡å¿—ä½
+//	uint8_t double_press_happen;//åŒå‡»æ ‡å¿—ä½
+//	uint8_t long_press_happen;//é•¿æŒ‰æ ‡å¿—ä½	
 //}Key_Flag;
 
 
@@ -56,10 +56,10 @@ uint8_t key_state;
 //	
 //}
 /************************************************* 
-@Description:°´¼üÏû¶¶¶¨Ê±Æ÷
-@Input:ÎŞ
-@Output:ÎŞ
-@Return:ÎŞ
+@Description:æŒ‰é”®æ¶ˆæŠ–å®šæ—¶å™¨
+@Input:æ— 
+@Output:æ— 
+@Return:æ— 
 *************************************************/ 
 void key_tim_start(void)
 {
@@ -67,23 +67,23 @@ void key_tim_start(void)
 }
 
 /************************************************* 
-@Description:°´¼üÖĞ¶ÏÊÂ¼ş
-@Input:ÎŞ
-@Output:ÎŞ
-@Return:ÎŞ
+@Description:æŒ‰é”®ä¸­æ–­äº‹ä»¶
+@Input:æ— 
+@Output:æ— 
+@Return:æ— 
 *************************************************/ 
 void onKeyEvent(void)
 {
-	key_tim_start();//Æô¶¯Ïû¶¶¶¨Ê±Æ÷
-	Key_Read_Disable_Interrupt();//°´¼üÖĞ¶Ï²»Ê¹ÄÜ
+	key_tim_start();//å¯åŠ¨æ¶ˆæŠ–å®šæ—¶å™¨
+	Key_Read_Disable_Interrupt();//æŒ‰é”®ä¸­æ–­ä¸ä½¿èƒ½
 }
 
 
 /************************************************* 
-@Description:Ïû¶¶¼ÆÊ±Æ÷
-@Input:ÎŞ
-@Output:ÎŞ
-@Return:ÎŞ
+@Description:æ¶ˆæŠ–è®¡æ—¶å™¨
+@Input:æ— 
+@Output:æ— 
+@Return:æ— 
 *************************************************/ 
 void RTC1_IRQHandler(void)
 {
@@ -91,23 +91,23 @@ void RTC1_IRQHandler(void)
 	{
 		NRF_RTC1->EVENTS_COMPARE[0]=0UL;	//clear event
 		NRF_RTC1->TASKS_CLEAR=1UL;	//clear count
-//		key_tim++;//°´¼ü¼ÆÊı
+//		key_tim++;//æŒ‰é”®è®¡æ•°
 //		key_double_tim++;
-		Key_Scan_En = 1;//°´¼üÉ¨ÃèÊ¹ÄÜ
+		Key_Scan_En = 1;//æŒ‰é”®æ‰«æä½¿èƒ½
 	}
 }
 
 
 /************************************************* 
-Description:°´¼ü³õÊ¼»¯
-Input:ÎŞ
-Output:ÎŞ
-Return:ÎŞ
+Description:æŒ‰é”®åˆå§‹åŒ–
+Input:æ— 
+Output:æ— 
+Return:æ— 
 *************************************************/
 /*
 void key_init(void)
 {
-	//°´¼ü
+	//æŒ‰é”®
 	NRF_GPIO->PIN_CNF[KEY_Pin_Num]=(GPIO_PIN_CNF_SENSE_Low << GPIO_PIN_CNF_SENSE_Pos)//low level
 										| (GPIO_PIN_CNF_DRIVE_S0S1 << GPIO_PIN_CNF_DRIVE_Pos)
                                         | (GPIO_PIN_CNF_PULL_Pullup << GPIO_PIN_CNF_PULL_Pos)
@@ -120,57 +120,57 @@ void key_init(void)
 }
 */
 /************************************************* 
-@Description:°´¼üÉ¨Ãè ¶Ì°´¡¢³¤°´
-@Input:ÎŞ
-@Output:ÎŞ
-@Return:ÎŞ
+@Description:æŒ‰é”®æ‰«æ çŸ­æŒ‰ã€é•¿æŒ‰
+@Input:æ— 
+@Output:æ— 
+@Return:æ— 
 *************************************************/ 
 //void Get_Key_Value(void)
 //{
-//	if(!Read_KEY)//°´¼ü°´ÏÂ
+//	if(!Read_KEY)//æŒ‰é”®æŒ‰ä¸‹
 //	{
 //		key_up_tim = 0;
 //		if(0 == k1.Flag.short_press_happen)
 //		{
 //			k1.Flag.short_press_happen = 1;
-//			key_tim = 0; //°´¼ü°´ÏÂ£¬¼ÆÊ±Çå0
+//			key_tim = 0; //æŒ‰é”®æŒ‰ä¸‹ï¼Œè®¡æ—¶æ¸…0
 //		}
 //		else if(1 == k1.Flag.short_press_happen)
 //		{
-//			if(key_tim > Key_Alarm_Delay)//³¤°´£¬ÖÃÎª1
+//			if(key_tim > Key_Alarm_Delay)//é•¿æŒ‰ï¼Œç½®ä¸º1
 //			{
-//				k1.Value = long_press;//³¤°´
+//				k1.Value = long_press;//é•¿æŒ‰
 //				k1.Flag.long_press_happen = 1;
 //				k1.Flag.short_press_happen = 0;
 //			}
 //		}
 //	}
-//	if(Read_KEY)//°´¼üÌ§Æğ
+//	if(Read_KEY)//æŒ‰é”®æŠ¬èµ·
 //	{
 //		key_up_tim++;
-//		if(1 == k1.Flag.short_press_happen)//k1.Flag.short_press_happen=1£¬ËµÃ÷°´¼üÎª¶Ì°´
+//		if(1 == k1.Flag.short_press_happen)//k1.Flag.short_press_happen=1ï¼Œè¯´æ˜æŒ‰é”®ä¸ºçŸ­æŒ‰
 //		{
-//			k1.Flag.short_press_happen = 0;//Çå³ı¶Ì°´ÊÂ¼ş
-//			if(0 == k1.Flag.double_press_happen)//µÚÒ»´ÎÌ§Æğ
+//			k1.Flag.short_press_happen = 0;//æ¸…é™¤çŸ­æŒ‰äº‹ä»¶
+//			if(0 == k1.Flag.double_press_happen)//ç¬¬ä¸€æ¬¡æŠ¬èµ·
 //			{
-//				k1.Flag.double_press_happen = 1;//°´¼üË«»÷±êÖ¾Î»ÖÃ1,µÈ´ıÈ·ÈÏÊÇ·ñÎªË«»÷
+//				k1.Flag.double_press_happen = 1;//æŒ‰é”®åŒå‡»æ ‡å¿—ä½ç½®1,ç­‰å¾…ç¡®è®¤æ˜¯å¦ä¸ºåŒå‡»
 //				key_double_tim = 0;
 //			}
-//			else if(1 == k1.Flag.double_press_happen)//µÚ¶ş´ÎÌ§Æğ
+//			else if(1 == k1.Flag.double_press_happen)//ç¬¬äºŒæ¬¡æŠ¬èµ·
 //			{
-//				if(key_double_tim < key_double_interval) //µÚÒ»´Î·¢Éú¶Ì°´ºó£¬ÔÚ500msÄÚ·¢ÉúµÚ¶ş´Î¶Ì°´£¬Íê³ÉÒ»´ÎË«»÷
+//				if(key_double_tim < key_double_interval) //ç¬¬ä¸€æ¬¡å‘ç”ŸçŸ­æŒ‰åï¼Œåœ¨500mså†…å‘ç”Ÿç¬¬äºŒæ¬¡çŸ­æŒ‰ï¼Œå®Œæˆä¸€æ¬¡åŒå‡»
 //				{
-//					k1.Value = double_press;//Ë«»÷
-//					k1.Flag.double_press_happen = 0;//Çå³ı±êÖ¾Î»
+//					k1.Value = double_press;//åŒå‡»
+//					k1.Flag.double_press_happen = 0;//æ¸…é™¤æ ‡å¿—ä½
 //				}
 //			}
 //		}
-//		else if(1 == k1.Flag.double_press_happen)//µÚÒ»´Î¶Ì°´ºó£¬µÈ´ı500ms£¬Èç¹ûÎ´·¢Éú¶Ì°´£¬¸üĞÂÖµ
+//		else if(1 == k1.Flag.double_press_happen)//ç¬¬ä¸€æ¬¡çŸ­æŒ‰åï¼Œç­‰å¾…500msï¼Œå¦‚æœæœªå‘ç”ŸçŸ­æŒ‰ï¼Œæ›´æ–°å€¼
 //		{
 //			if(key_double_tim > key_double_interval)
 //			{
 //				k1.Flag.double_press_happen = 0;
-//				k1.Value = short_press;//¶Ì°´
+//				k1.Value = short_press;//çŸ­æŒ‰
 //			}
 //		}
 //		else if(1 == k1.Flag.long_press_happen)
@@ -188,8 +188,8 @@ void Get_Key_Value(void)
 	switch(key_state)//
 	{
 		case 0:if(!Read_KEY) { key_state = 1; key_tim=0;}break;
-		case 1://¶Ì°´³¤°´ÅĞ¶Ï
-			if(Read_KEY)//¶Ì°´
+		case 1://çŸ­æŒ‰é•¿æŒ‰åˆ¤æ–­
+			if(Read_KEY)//çŸ­æŒ‰
 			{
 				key_state = 3;
 				key_double_tim = 0;
@@ -197,20 +197,20 @@ void Get_Key_Value(void)
 			else if(!Read_KEY)
 			{
 				key_tim++;
-				if(key_tim > Key_Alarm_Delay )//³¤°´
+				if(key_tim > Key_Alarm_Delay )//é•¿æŒ‰
 				{
 					k1.Value = long_press;
 					key_state = 2; 
 				}
 			}
 			break;
-		case 2://³¤°´ÊÍ·Å
+		case 2://é•¿æŒ‰é‡Šæ”¾
 			if(Read_KEY)
 			{
 				key_state = 0;
 			}
 			break;
-		case 3://¶Ì°´Ë«»÷ÅĞ¶Ï
+		case 3://çŸ­æŒ‰åŒå‡»åˆ¤æ–­
 			key_double_tim++;
 			if(!Read_KEY)
 			{
@@ -229,16 +229,16 @@ void Get_Key_Value(void)
 				}
 			}
 			break;
-		case 4://Ë«»÷³¤°´ÅĞ¶Ï
-			if(Read_KEY)//Ë«»÷
+		case 4://åŒå‡»é•¿æŒ‰åˆ¤æ–­
+			if(Read_KEY)//åŒå‡»
 			{
 				key_state = 0;
 				k1.Value = double_press;
 			}
-			else if(!Read_KEY)//³¤°´
+			else if(!Read_KEY)//é•¿æŒ‰
 			{
 				key_tim++;
-				if(key_tim > Key_Alarm_Delay )//³¤°´
+				if(key_tim > Key_Alarm_Delay )//é•¿æŒ‰
 				{
 					k1.Value = long_press;
 					key_state = 2; 
@@ -249,35 +249,35 @@ void Get_Key_Value(void)
 	}
 }
 /************************************************* 
-@Description:°´¼ü´¦Àíº¯Êı
-@Input:ÎŞ
-@Output:ÎŞ
-@Return:·µ»Ø¼üÖµ
+@Description:æŒ‰é”®å¤„ç†å‡½æ•°
+@Input:æ— 
+@Output:æ— 
+@Return:è¿”å›é”®å€¼
 *************************************************/ 
 void Key_Deal(void)
 {
-	if(Key_Scan_En)//40msÉ¨ÃèÒ»´Î°´¼ü
+	if(Key_Scan_En)//40msæ‰«æä¸€æ¬¡æŒ‰é”®
 	{
 		Key_Scan_En = 0;
-		Get_Key_Value();//»ñÈ¡¼üÖµ
-		Key_Func();//°´¼ü¹¦ÄÜº¯Êı
+		Get_Key_Value();//è·å–é”®å€¼
+		Key_Func();//æŒ‰é”®åŠŸèƒ½å‡½æ•°
 	}
 }
 
 /************************************************* 
-@Description:°´¼üÓÃ»§º¯Êı
-@Input:ÎŞ
-@Output:ÎŞ
-@Return:·µ»Ø¼üÖµ
+@Description:æŒ‰é”®ç”¨æˆ·å‡½æ•°
+@Input:æ— 
+@Output:æ— 
+@Return:è¿”å›é”®å€¼
 *************************************************/ 
 uint8_t key_cnt;
 void Key_Func(void)
 {
 
-	if(0 == key_state)//Ì§Æğ
+	if(0 == key_state)//æŠ¬èµ·
 	{
-		rtc1_deinit();//Í£Ö¹É¨Ãè°´¼ü	
-		Key_Read_Enable_Interrupt();//°´¼ü ÖĞ¶ÏÊ¹ÄÜ
+		rtc1_deinit();//åœæ­¢æ‰«ææŒ‰é”®	
+		Key_Read_Enable_Interrupt();//æŒ‰é”® ä¸­æ–­ä½¿èƒ½
 	}
 	switch(k1.Value)
 	{

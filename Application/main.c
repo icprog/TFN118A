@@ -5,25 +5,25 @@
 #include "app_key.h"
 #include "rtc.h"
 #include "app_radio.h"
-extern uint8_t rtc_flag;//¶¨Ê±£¬ÉäÆµ·¢ËÍ
+extern uint8_t rtc_flag;//å®šæ—¶ï¼Œå°„é¢‘å‘é€
 
 
-uint8_t rtc0_cnt;//¶¨Ê±Æ÷¼ÆÊı
-#define bat_chr_cycle 1 //1s²É¼¯Ò»´Î
-#define bat_cycle 60 //60s²É¼¯Ò»´Î
+uint8_t rtc0_cnt;//å®šæ—¶å™¨è®¡æ•°
+#define bat_chr_cycle 1 //1sé‡‡é›†ä¸€æ¬¡
+#define bat_cycle 60 //60sé‡‡é›†ä¸€æ¬¡
 extern bat_typedef battery;
 
 
 #if TFN118A
 /************************************************* 
-@Description:µçÁ¿²É¼¯
-@Input:ÎŞ
+@Description:ç”µé‡é‡‡é›†
+@Input:æ— 
 @Output:
-@Return:ÎŞ
+@Return:æ— 
 *************************************************/ 
 void Bat_Detect(void)
 {
-	if(battery.CHR_Flag)//³äµçµçÁ¿²É¼¯ÖÜÆÚ
+	if(battery.CHR_Flag)//å……ç”µç”µé‡é‡‡é›†å‘¨æœŸ
 	{
 		if(rtc0_cnt > bat_chr_cycle )
 		{
@@ -31,16 +31,16 @@ void Bat_Detect(void)
 			rtc0_cnt = 0;
 			if(Read_CHR)
 			{
-				battery.CHR_Flag  = 0; //Î´ÔÚ³äµç
-				battery.Bat_Full = 0;  //³äÂú±êÖ¾Î»Çå¿Õ
+				battery.CHR_Flag  = 0; //æœªåœ¨å……ç”µ
+				battery.Bat_Full = 0;  //å……æ»¡æ ‡å¿—ä½æ¸…ç©º
 			}
 		}
 	}
-	else//²»³äµç£¬µçÁ¿²É¼¯ÖÜÆÚ
+	else//ä¸å……ç”µï¼Œç”µé‡é‡‡é›†å‘¨æœŸ
 	{
 		if(rtc0_cnt> bat_cycle )
 		{
-			battery.bat_capacity = battery_check_read();//²É¼¯µçÁ¿
+			battery.bat_capacity = battery_check_read();//é‡‡é›†ç”µé‡
 			rtc0_cnt = 0;
 		}
 	}	
@@ -48,10 +48,10 @@ void Bat_Detect(void)
 #endif
 
 /************************************************* 
-@Description:Ö÷º¯Êı
-@Input:ÎŞ
+@Description:ä¸»å‡½æ•°
+@Input:æ— 
 @Output:
-@Return:ÎŞ
+@Return:æ— 
 *************************************************/ 
 uint32_t test_i;
 int main(void)
@@ -61,22 +61,22 @@ int main(void)
 	function_test();
 	#endif
 	OLED_Init();
-	//³õÊ¼µçÁ¿²É¼¯
+	//åˆå§‹ç”µé‡é‡‡é›†
 	nrf_delay_ms(1000);
 	battery.bat_capacity = battery_check_read();
 	RTC_Time_Set(0);
 	while(1)
 	{
-//		Key_Deal();//°´¼ü
-//		Bat_Detect();//µçÁ¿²É¼¯
-		//1s¶¨Ê±
+//		Key_Deal();//æŒ‰é”®
+//		Bat_Detect();//ç”µé‡é‡‡é›†
+		//1så®šæ—¶
 		if(rtc_flag)
 		{
 			rtc0_cnt++;
 			rtc_flag = 0;
 			test_i++;
 //			if(test_i<100)
-				Raio_Deal();//ÉäÆµ¹¦ÄÜ		
+				Raio_Deal();//å°„é¢‘åŠŸèƒ½		
 
 		}
 		OLED_SHOW();

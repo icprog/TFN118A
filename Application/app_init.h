@@ -5,9 +5,9 @@
 #include "app_key.h"
 #include "radio_config.h"
 
-//io¶¨Òå
+//ioå®šä¹‰
 
-//´®¿Ú¶¨Òå
+//ä¸²å£å®šä¹‰
 #define RX_PIN_NUMBER  11    // UART RX pin number.
 #define TX_PIN_NUMBER 9   // UART TX pin number.
 #define CTS_PIN_NUMBER 6   // UART Clear To Send pin number. Not used if HWFC is set to false
@@ -25,22 +25,22 @@
 #define ADC_Pin_Num ADC_CONFIG_PSEL_AnalogInput2
 //OLED
 #define OLED_PWR_Pin_Num  02
-#define OLED_PWR_ON() do{NRF_GPIO->OUTSET = (1 << OLED_PWR_Pin_Num);}while(0)//OLEDµçÔ´¿ªÆô
-#define OLED_PWR_OFF() do{NRF_GPIO->OUTCLR = (1 << OLED_PWR_Pin_Num);}while(0)//OLEDµçÔ´¹Ø±Õ
+#define OLED_PWR_ON() do{NRF_GPIO->OUTSET = (1 << OLED_PWR_Pin_Num);}while(0)//OLEDç”µæºå¼€å¯
+#define OLED_PWR_OFF() do{NRF_GPIO->OUTCLR = (1 << OLED_PWR_Pin_Num);}while(0)//OLEDç”µæºå…³é—­
 #define OLED_RES_Pin_Num  15
-#define OLED_RES_LOW()	do{NRF_GPIO->OUTCLR = (1 << OLED_RES_Pin_Num);}while(0) //¸´Î»
+#define OLED_RES_LOW()	do{NRF_GPIO->OUTCLR = (1 << OLED_RES_Pin_Num);}while(0) //å¤ä½
 #define OLED_RES_HIGH()	do{NRF_GPIO->OUTSET = (1 << OLED_RES_Pin_Num);}while(0)
-//³äµçÖ¸Ê¾
+//å……ç”µæŒ‡ç¤º
 #define USB_CHR_Pin_Num  13
-#define Read_CHR	((NRF_GPIO->IN >> USB_CHR_Pin_Num)&1)    //0:±íÊ¾ÕýÔÚ³äµç
-//°´¼ü
+#define Read_CHR	((NRF_GPIO->IN >> USB_CHR_Pin_Num)&1)    //0:è¡¨ç¤ºæ­£åœ¨å……ç”µ
+//æŒ‰é”®
 #define KEY_Pin_Num		7
 //#define KEY_Pin_Num		16
-#define Read_KEY 	((NRF_GPIO->IN >> KEY_Pin_Num)&1)		//0£º±íÊ¾ÓÐ°´¼ü°´ÏÂ
+#define Read_KEY 	((NRF_GPIO->IN >> KEY_Pin_Num)&1)		//0ï¼šè¡¨ç¤ºæœ‰æŒ‰é”®æŒ‰ä¸‹
 #define Key_Read_Disable_Interrupt()  do {NRF_GPIO->PIN_CNF[KEY_Pin_Num] &= (~GPIO_PIN_CNF_SENSE_Msk); }while(0)
 #define Key_Read_Enable_Interrupt() do {NRF_GPIO->PIN_CNF[KEY_Pin_Num] |= (GPIO_PIN_CNF_SENSE_Low << GPIO_PIN_CNF_SENSE_Pos);}while(0)
 
-//µçÁ¿²É¼¯²ÎÊý¶¨Òå
+//ç”µé‡é‡‡é›†å‚æ•°å®šä¹‰
 #define ZeroThreshold 725
 #define OneThreshold 789     //
 #define TwoThreshold 810
@@ -49,22 +49,22 @@
 #define FiveThreshold 5
 typedef enum
 {
-    bat_ZeroFourth = 0,//0¸ñ
-	bat_OneFourth=1,//1¸ñ
-    bat_TwoFourth=2,//2¸ñ
-    bat_ThreeFourth=3,//3¸ñ
-	bat_FourFourth=4//4¸ñ
+    bat_ZeroFourth = 0,//0æ ¼
+	bat_OneFourth=1,//1æ ¼
+    bat_TwoFourth=2,//2æ ¼
+    bat_ThreeFourth=3,//3æ ¼
+	bat_FourFourth=4//4æ ¼
 } battery_typedef;
 
 typedef struct
 {
-	uint8_t bat_capacity;//µçÁ¿
-	uint8_t CHR_Flag;//1:±íÊ¾ÕýÔÚ³äµç   0:±íÊ¾Î´ÔÚ³äµç
-	uint8_t Bat_Full;//1:ÒÑ³äÂú
+	uint8_t bat_capacity;//ç”µé‡
+	uint8_t CHR_Flag;//1:è¡¨ç¤ºæ­£åœ¨å……ç”µ   0:è¡¨ç¤ºæœªåœ¨å……ç”µ
+	uint8_t Bat_Full;//1:å·²å……æ»¡
 }bat_typedef;
 #endif
 
-//ÖÐ¶ÏÓÅÏÈ¼¶¶¨Òå
+//ä¸­æ–­ä¼˜å…ˆçº§å®šä¹‰
 typedef enum
 {
     APP_IRQ_PRIORITY_HIGHEST = 0,
@@ -81,18 +81,18 @@ typedef enum
 #define UART0_PRIORITY     	APP_IRQ_PRIORITY_HIGH
 
 //ext function
-extern void rtc0_init(void);//1s¶¨Ê±£¬ÓÃÀ´Ê±¼ä¶¨Ê±ºÍÉäÆµÖÜÆÚ·¢ËÍ
-extern void rtc_update_interval(void);//Ôö¼ÓËæ»úÊ±¼ä
-extern void xosc_hfclk_start(void);//ÉäÆµ·¢ËÍ£¬ÐèÒªÆô¶¯Íâ²¿16M¾§Õñ
-extern void xosc_hfclk_stop(void);//Í£Ö¹ÉäÆµ·¢ËÍÊ±£¬¹Ø±ÕÍâ²¿¾§Õñ
-extern void app_init(void);//Ó²¼þ³õÊ¼»¯
+extern void rtc0_init(void);//1så®šæ—¶ï¼Œç”¨æ¥æ—¶é—´å®šæ—¶å’Œå°„é¢‘å‘¨æœŸå‘é€
+extern void rtc_update_interval(void);//å¢žåŠ éšæœºæ—¶é—´
+extern void xosc_hfclk_start(void);//å°„é¢‘å‘é€ï¼Œéœ€è¦å¯åŠ¨å¤–éƒ¨16Mæ™¶æŒ¯
+extern void xosc_hfclk_stop(void);//åœæ­¢å°„é¢‘å‘é€æ—¶ï¼Œå…³é—­å¤–éƒ¨æ™¶æŒ¯
+extern void app_init(void);//ç¡¬ä»¶åˆå§‹åŒ–
 void UART_Init(void);
 #ifdef TFN118A
 extern u8 battery_check_read(void);
-extern void motor_run_state(u8 state);//Õñ¶¯Âí´ï×´Ì¬
-extern void battery_check_init(void);//µçÁ¿²É¼¯³õÊ¼»¯
-extern u8 battery_check_read(void);//µçÁ¿²É¼¯
-void rtc1_init(void);//rtc1 ÓÃÀ´°´¼üÏû¶¶
+extern void motor_run_state(u8 state);//æŒ¯åŠ¨é©¬è¾¾çŠ¶æ€
+extern void battery_check_init(void);//ç”µé‡é‡‡é›†åˆå§‹åŒ–
+extern u8 battery_check_read(void);//ç”µé‡é‡‡é›†
+void rtc1_init(void);//rtc1 ç”¨æ¥æŒ‰é”®æ¶ˆæŠ–
 void rtc1_deinit(void);
 #endif
 

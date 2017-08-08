@@ -14,15 +14,15 @@ typedef enum
 	ascii_2412=24
 }ASSCII_S_Typedef;
 
-//OLEDÄ£Ê½ÉèÖÃ
-//0: 4Ïß´®ĞĞÄ£Ê½
-//1: iicÄ£Ê½
+//OLEDæ¨¡å¼è®¾ç½®
+//0: 4çº¿ä¸²è¡Œæ¨¡å¼
+//1: iicæ¨¡å¼
 #define OLED_MODE 1
 		    						  
-//-----------------OLED¶Ë¿Ú¶¨Òå----------------  
+//-----------------OLEDç«¯å£å®šä¹‰----------------  
 #ifdef OLED_MODE
-#define OLED_Slave_Address 0x78 //Æ÷¼şµØÖ·
-#define OLED_CMD      0			//D/C 0£ºÏÂÒ»×Ö½Ú±íÊ¾ÃüÁî
+#define OLED_Slave_Address 0x78 //å™¨ä»¶åœ°å€
+#define OLED_CMD      0			//D/C 0ï¼šä¸‹ä¸€å­—èŠ‚è¡¨ç¤ºå‘½ä»¤
 #define OLED_DATA     1
 #define OLED_IIC_CMD  0X00
 #define OLED_IIC_DATA 0X40
@@ -39,22 +39,22 @@ typedef enum
 #define OLED_VDD_BAT_ON() OLED_PWR_ON()
 #define OLED_VDD_BAT_OFF() OLED_PWR_OFF()
 /*
-SSD1316 ¹æ¸ñÊéÉÏ128*39Dot page ¹²4Ò³
+SSD1316 è§„æ ¼ä¹¦ä¸Š128*39Dot page å…±4é¡µ
 */
 #define SSD1316_128_32
-//×óÏÂ½Ç×ø±êÔ­µãÎª(4,0),×óÉÏ½Ç(4,31),ÓÒÏÂ½Ç(131,0),ÓÒÉÏ½Ç(131,63)
+//å·¦ä¸‹è§’åæ ‡åŸç‚¹ä¸º(4,0),å·¦ä¸Šè§’(4,31),å³ä¸‹è§’(131,0),å³ä¸Šè§’(131,63)
 #if defined SSD1316_128_64
 	#define SSD1316_LCDWIDTH                  	128
 	#define SSD1316_LCDHEIGHT                	64
 #endif
-#if defined SSD1316_128_32     //×ø±ê·¶Î§4~131,0~32£¬pageÒ³ÊÇ4~7£¬
+#if defined SSD1316_128_32     //åæ ‡èŒƒå›´4~131,0~32ï¼Œpageé¡µæ˜¯4~7ï¼Œ
 	#define SSD1316_LCDWIDTH                  	128
 	#define SSD1316_LCDHEIGHT                 	32
 	#define PAGE SSD1316_LCDHEIGHT/8
 //#define PAGE 1
 	#define START_PAGE 0xB0
-	#define START_HIGH_BIT 0x10  //ÁĞ¸ß4Î»
-	#define START_LOW_BIT 0x00	 //ÁĞµÍ4Î»	
+	#define START_HIGH_BIT 0x10  //åˆ—é«˜4ä½
+	#define START_LOW_BIT 0x00	 //åˆ—ä½4ä½	
 	#define STATE_MAX 0XFF
 	#define STATE_MIN 0X00
 	#define MIN 0
@@ -64,7 +64,7 @@ SSD1316 ¹æ¸ñÊéÉÏ128*39Dot page ¹²4Ò³
   
 
 
-//OLED¿ØÖÆÓÃº¯Êı
+//OLEDæ§åˆ¶ç”¨å‡½æ•°
 void OLED_WR_Byte(u8 dat,u8 cmd);	    
 void OLED_Display_On(void);
 void OLED_Display_Off(void);
@@ -83,7 +83,7 @@ void OLED_SHOW(void);
 
 
 /*
-//Ê¹ÓÃ4Ïß´®ĞĞ½Ó¿ÚÊ±Ê¹ÓÃ 
+//ä½¿ç”¨4çº¿ä¸²è¡Œæ¥å£æ—¶ä½¿ç”¨ 
 #define OLED_SCLK PCout(3)
 #define OLED_SDIN PAout(1)
 		     

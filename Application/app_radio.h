@@ -12,23 +12,23 @@ typedef enum
 	RADIO_RUN_DATA_CHANNEL
 }RADIO_CHANNEL;
 
-//Ê±¼ä¸üĞÂ
+//æ—¶é—´æ›´æ–°
 typedef enum
 {
 	Time_NoUpdate=0,
 	Time_Update = 1
 }Time_Update_Typedef;
-//±êÇ©×´Ì¬×Ö
+//æ ‡ç­¾çŠ¶æ€å­—
 typedef struct
 {
-	uint8_t State_LP_Alarm;//µÍµç±¨¾¯ 1:µÍµç
-	uint8_t State_Key_Alram;//°´¼ü±¨¾¯ 1£º°´¼ü°´ÏÂ£¬ÉÏ±¨10s
-	uint8_t State_Mode;//Ä£Ê½ 1£º»î¶¯Ä£Ê½ 0£º²Ö´¢Ä£Ê½
-	uint8_t State_Update_Time;//1:ÔÊĞí¸üĞÂÊ±¼ä 0£º²»ÔÊĞí¸üĞÂÊ±¼ä£¬Ã¿Ìì24µãÖÃÎ»
+	uint8_t State_LP_Alarm;//ä½ç”µæŠ¥è­¦ 1:ä½ç”µ
+	uint8_t State_Key_Alram;//æŒ‰é”®æŠ¥è­¦ 1ï¼šæŒ‰é”®æŒ‰ä¸‹ï¼Œä¸ŠæŠ¥10s
+	uint8_t State_Mode;//æ¨¡å¼ 1ï¼šæ´»åŠ¨æ¨¡å¼ 0ï¼šä»“å‚¨æ¨¡å¼
+	uint8_t State_Update_Time;//1:å…è®¸æ›´æ–°æ—¶é—´ 0ï¼šä¸å…è®¸æ›´æ–°æ—¶é—´ï¼Œæ¯å¤©24ç‚¹ç½®ä½
 }TAG_STATE_Typedef;
 
 extern void radio_pwr(uint8_t txpower);
-extern void Raio_Deal(void);//ÉäÆµÖÜÆÚ·¢ËÍ
+extern void Raio_Deal(void);//å°„é¢‘å‘¨æœŸå‘é€
 #endif
 
 

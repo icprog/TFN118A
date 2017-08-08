@@ -2,23 +2,23 @@
 #include "app_init.h"
 #include "simple_uart.h"
 #include "Debug_log.h"
-#define rtc_interval 1  //µ¥Î»s
+#define rtc_interval 1  //å•ä½s
 #define rtc_base ((32768*rtc_interval) - 1)
 
 
-bat_typedef battery;//µç³ØµçÁ¿
+bat_typedef battery;//ç”µæ± ç”µé‡
 /************************************************* 
-Description:ÅäÖÃµÍÆµÊ±ÖÓÊ±ÖÓÔ´  
+Description:é…ç½®ä½Žé¢‘æ—¶é’Ÿæ—¶é’Ÿæº  
 Input:
-£¨1£©¡¢source : 1:Ñ¡ÔñÍâ²¿¾§Õñ XOSC 0£ºÄÚ²¿rc ROSC
-Output:ÎÞ
-Return:ÎÞ
+ï¼ˆ1ï¼‰ã€source : 1:é€‰æ‹©å¤–éƒ¨æ™¶æŒ¯ XOSC 0ï¼šå†…éƒ¨rc ROSC
+Output:æ— 
+Return:æ— 
 *************************************************/  
 static void lfclk_init(uint8_t source)
 {
 	uint8_t lfclksrc;
 	NRF_CLOCK->EVENTS_LFCLKSTARTED = 0;
-	//Ñ¡ÔñÊ±ÖÓÔ´
+	//é€‰æ‹©æ—¶é’Ÿæº
 	lfclksrc = source ? CLOCK_LFCLKSRC_SRC_Xtal : CLOCK_LFCLKSRC_SRC_RC;
 	NRF_CLOCK->LFCLKSRC = lfclksrc << CLOCK_LFCLKSRC_SRC_Pos;
 	NRF_CLOCK->TASKS_LFCLKSTART = 1;
@@ -28,10 +28,10 @@ static void lfclk_init(uint8_t source)
 }
 
 /************************************************* 
-Description:²úÉú0~255Ëæ»úÊý 
-Input:ÎÞ
-Output:Êä³öËæ»úÖµ
-Return:ÎÞ
+Description:äº§ç”Ÿ0~255éšæœºæ•° 
+Input:æ— 
+Output:è¾“å‡ºéšæœºå€¼
+Return:æ— 
 *************************************************/ 
 //uint8_t rng_value = 0;
 static uint8_t random_vector_generate()
@@ -51,15 +51,15 @@ static uint8_t random_vector_generate()
 //	return rng_value;
 }
 /************************************************* 
-@Description:rtc³õÊ¼»¯  
+@Description:rtcåˆå§‹åŒ–  
 @Input:
-@Output:ÎÞ
-@Return:ÎÞ
+@Output:æ— 
+@Return:æ— 
 *************************************************/  
 void rtc0_init(void)
 {
-	lfclk_init(1);//1£ºXOSC 0£ºROSC
-	NRF_RTC0->PRESCALER = 0;//32.768khz Ô¼µÈÓÚ0.03ms
+	lfclk_init(1);//1ï¼šXOSC 0ï¼šROSC
+	NRF_RTC0->PRESCALER = 0;//32.768khz çº¦ç­‰äºŽ0.03ms
 	NRF_RTC0->CC[0] = rtc_base;//
 	NRF_RTC0->EVENTS_COMPARE[0] = 0;//EVENTS_TICK
 	NRF_RTC0->INTENSET =  RTC_INTENCLR_COMPARE0_Enabled<<RTC_INTENCLR_COMPARE0_Pos;//
@@ -70,20 +70,20 @@ void rtc0_init(void)
 	NVIC_EnableIRQ( RTC0_IRQn );
 }
 /************************************************* 
-@Description:rtc0Æô¶¯¼ÆÊý  
+@Description:rtc0å¯åŠ¨è®¡æ•°  
 @Input:
-@Output:ÎÞ
-@Return:ÎÞ
+@Output:æ— 
+@Return:æ— 
 *************************************************/  
 static void rtc0_start(void)
 {
 	NRF_RTC0->TASKS_START = 1;
 }
 /************************************************* 
-@Description:rtc0Í£Ö¹¼ÆÊý
+@Description:rtc0åœæ­¢è®¡æ•°
 @Input:
-@Output:ÎÞ
-@Return:ÎÞ
+@Output:æ— 
+@Return:æ— 
 *************************************************/  
 static void rtc0_stop(void)
 {
@@ -91,17 +91,17 @@ static void rtc0_stop(void)
 }
 
 /************************************************* 
-Description:rtc1³õÊ¼»¯  
+Description:rtc1åˆå§‹åŒ–  
 Input:
-Output:ÎÞ
-Return:ÎÞ
+Output:æ— 
+Return:æ— 
 *************************************************/ 
 void rtc1_init(void)
 {	
-	NRF_RTC1->PRESCALER = 0;//32.768khz Ô¼µÈÓÚ0.03ms
-	NRF_RTC1->CC[0] = jitter_delay;//Ô½40ms
+	NRF_RTC1->PRESCALER = 0;//32.768khz çº¦ç­‰äºŽ0.03ms
+	NRF_RTC1->CC[0] = jitter_delay;//è¶Š40ms
 	NRF_RTC1->EVENTS_COMPARE[0] = 0;//EVENTS_TICK
-	NRF_RTC1->INTENSET =  RTC_INTENCLR_COMPARE0_Enabled<<RTC_INTENCLR_COMPARE0_Pos;//Ê¹ÄÜÖÐ¶Ï
+	NRF_RTC1->INTENSET =  RTC_INTENCLR_COMPARE0_Enabled<<RTC_INTENCLR_COMPARE0_Pos;//ä½¿èƒ½ä¸­æ–­
 	NRF_RTC1->TASKS_START = 1;
 	
 	NVIC_SetPriority(RTC1_IRQn,RTC1_PRIORITY);
@@ -110,23 +110,23 @@ void rtc1_init(void)
 }
 
 /************************************************* 
-Description:rtc1³õÊ¼»¯  
+Description:rtc1åˆå§‹åŒ–  
 Input:
-Output:ÎÞ
-Return:ÎÞ
+Output:æ— 
+Return:æ— 
 *************************************************/ 
 void rtc1_deinit(void)
 {	
 	NRF_RTC1->TASKS_STOP = 1;
-	NRF_RTC1->INTENSET &=  (~RTC_INTENCLR_COMPARE0_Msk);//ÖÐ¶Ï²»Ê¹ÄÜ
+	NRF_RTC1->INTENSET &=  (~RTC_INTENCLR_COMPARE0_Msk);//ä¸­æ–­ä¸ä½¿èƒ½
 	NVIC_DisableIRQ( RTC1_IRQn );	
 }
 
 /************************************************* 
-Description:¹ã²¥¼ä¸ôÔö¼Ó0~7.65msµÄËæ»úÑÓÊ±
-Input:ÎÞ
-Output:ÎÞ
-Return:ÎÞ
+Description:å¹¿æ’­é—´éš”å¢žåŠ 0~7.65msçš„éšæœºå»¶æ—¶
+Input:æ— 
+Output:æ— 
+Return:æ— 
 */
 void rtc_update_interval(void)
 {
@@ -145,14 +145,14 @@ void rtc_update_interval(void)
 	
 }
 /************************************************* 
-Description:Æô¶¯Íâ²¿¾§Õñ
-Input:ÎÞ
-Output:ÎÞ
-Return:ÎÞ
+Description:å¯åŠ¨å¤–éƒ¨æ™¶æŒ¯
+Input:æ— 
+Output:æ— 
+Return:æ— 
 *************************************************/ 
 void xosc_hfclk_start(void)
 {
-	/*µ±Íâ²¿¾§ÕñÎ´Æô¶¯Ê±£¬²ÅÆô¶¯Íâ²¿¾§Õñ*/
+	/*å½“å¤–éƒ¨æ™¶æŒ¯æœªå¯åŠ¨æ—¶ï¼Œæ‰å¯åŠ¨å¤–éƒ¨æ™¶æŒ¯*/
 	if((NRF_CLOCK->HFCLKSTAT & CLOCK_HFCLKSTAT_SRC_Xtal)!=1)
 	{
 		/*clear event*/
@@ -165,7 +165,7 @@ void xosc_hfclk_start(void)
 		{
 			
 		}
-		//µÈ´ýHFCLK running
+		//ç­‰å¾…HFCLK running
 		while((NRF_CLOCK->HFCLKSTAT & CLOCK_HFCLKSTAT_STATE_Msk) == 0)
 		{
 		}
@@ -173,10 +173,10 @@ void xosc_hfclk_start(void)
 }
 
 /************************************************* 
-Description:¹Ø±ÕÍâ²¿¾§Õñ
-Input:ÎÞ
-Output:ÎÞ
-Return:ÎÞ
+Description:å…³é—­å¤–éƒ¨æ™¶æŒ¯
+Input:æ— 
+Output:æ— 
+Return:æ— 
 *************************************************/ 
 void xosc_hfclk_stop(void)
 {
@@ -189,10 +189,10 @@ void xosc_hfclk_stop(void)
 
 #ifdef TFN118A
 /************************************************* 
-Description:Õð¶¯Âí´ï³õÊ¼»¯
-Input:ÎÞ
-Output:ÎÞ
-Return:ÎÞ
+Description:éœ‡åŠ¨é©¬è¾¾åˆå§‹åŒ–
+Input:æ— 
+Output:æ— 
+Return:æ— 
 *************************************************/ 
 static void motor_init(void)
 {
@@ -205,26 +205,26 @@ static void motor_init(void)
 
 
 /************************************************* 
-Description:µçÁ¿²É¼¯³õÊ¼»¯ 1-1.05v
-Input:ÎÞ
-Output:ÎÞ
-Return:ÎÞ
+Description:ç”µé‡é‡‡é›†åˆå§‹åŒ– 1-1.05v
+Input:æ— 
+Output:æ— 
+Return:æ— 
 *************************************************/ 
 void battery_check_init(void)
 {
-    NRF_ADC->CONFIG = (ADC_CONFIG_RES_10bit << 0)//¾«¶È10Î»
-                  | (0 << 2) //ADC²âÁ¿ÖµµÈÓÚÊäÈë
-                  | (0 << 5) //Ñ¡ÔñÄÚ²¿1.2VÎª²Î¿¼µçÑ¹
-                  | (ADC_Pin_Num << 8);//ÅäÖÃ²ÉÑù½Å
+    NRF_ADC->CONFIG = (ADC_CONFIG_RES_10bit << 0)//ç²¾åº¦10ä½
+                  | (0 << 2) //ADCæµ‹é‡å€¼ç­‰äºŽè¾“å…¥
+                  | (0 << 5) //é€‰æ‹©å†…éƒ¨1.2Vä¸ºå‚è€ƒç”µåŽ‹
+                  | (ADC_Pin_Num << 8);//é…ç½®é‡‡æ ·è„š
  
 //    NRF_ADC->ENABLE = 0x01; 
 }
 
 /************************************************* 
-Description:Æô¶¯Ò»´ÎADC²É¼¯£¬³õÊ¼»¯ÑÓ³Ù1sºó£¬¿ªÊ¼²É¼¯
-Input:ÎÞ
-Output:ÎÞ
-Return:ÎÞ
+Description:å¯åŠ¨ä¸€æ¬¡ADCé‡‡é›†ï¼Œåˆå§‹åŒ–å»¶è¿Ÿ1såŽï¼Œå¼€å§‹é‡‡é›†
+Input:æ— 
+Output:æ— 
+Return:æ— 
 *************************************************/ 
 static uint16_t adc_convert_single(void)
 {
@@ -243,10 +243,10 @@ static uint16_t adc_convert_single(void)
 }
 
 /************************************************* 
-@Description:4¸öÊýÈ¥µô×î´óÖµ£¬×îÐ¡Öµ£¬È»ºóÈ¡Æ½¾ù¡£
-@Input:ÎÞ
-@Output:ÎÞ
-@Return:ÎÞ
+@Description:4ä¸ªæ•°åŽ»æŽ‰æœ€å¤§å€¼ï¼Œæœ€å°å€¼ï¼Œç„¶åŽå–å¹³å‡ã€‚
+@Input:æ— 
+@Output:æ— 
+@Return:æ— 
 *************************************************/ 
 uint16_t average(u16* data)
 {
@@ -269,10 +269,10 @@ uint16_t average(u16* data)
 }
 
 /************************************************* 
-@Description:¶à´Î²É¼¯µçÁ¿,1·ÖÖÓ²É¼¯Ò»´ÎµçÁ¿£¬¿¼ÂÇÊÇ·ñµ÷ÓÃ¸Ãº¯Êý
-@Input:ÎÞ
-@Output:ÎÞ
-@Return:·µ»ØADCÖµ
+@Description:å¤šæ¬¡é‡‡é›†ç”µé‡,1åˆ†é’Ÿé‡‡é›†ä¸€æ¬¡ç”µé‡ï¼Œè€ƒè™‘æ˜¯å¦è°ƒç”¨è¯¥å‡½æ•°
+@Input:æ— 
+@Output:æ— 
+@Return:è¿”å›žADCå€¼
 *************************************************/ 
 uint16_t adc_convert_times(void)
 {
@@ -296,10 +296,10 @@ uint16_t adc_convert_times(void)
 	return val;
 }
 /************************************************* 
-Description:µçÁ¿²É¼¯
-Input:ÎÞ
+Description:ç”µé‡é‡‡é›†
+Input:æ— 
 Output:
-Return:ÎÞ
+Return:æ— 
 *************************************************/ 
 uint16_t adc_value;
 u8 battery_check_read(void)
@@ -329,27 +329,27 @@ u8 battery_check_read(void)
 	else
 	{
 		bat_range = bat_FourFourth;
-		if(Read_CHR)//³äµçÒý½Å±ä³É¸ßµçÆ½£¬²¢ÇÒµçÑ¹×î´ó
+		if(Read_CHR)//å……ç”µå¼•è„šå˜æˆé«˜ç”µå¹³ï¼Œå¹¶ä¸”ç”µåŽ‹æœ€å¤§
 			battery.Bat_Full = 1;
 	}
 	return bat_range;
 }
 
 /************************************************* 
-Description:ÖÐ¶ÏÒý½Å³õÊ¼»¯
-Input:ÎÞ
+Description:ä¸­æ–­å¼•è„šåˆå§‹åŒ–
+Input:æ— 
 Output:
-Return:ÎÞ
+Return:æ— 
 *************************************************/ 
 static void io_interrupt_config(void)
 {
-	//³äµçÖ¸Ê¾IO¿ÚÉèÖÃ
+	//å……ç”µæŒ‡ç¤ºIOå£è®¾ç½®
 	NRF_GPIO->PIN_CNF[USB_CHR_Pin_Num]=GPIO_PIN_CNF_SENSE_Low<<GPIO_PIN_CNF_SENSE_Pos			//low level
 										| (GPIO_PIN_CNF_DRIVE_S0S1 << GPIO_PIN_CNF_DRIVE_Pos)
                                         | (GPIO_PIN_CNF_PULL_Disabled << GPIO_PIN_CNF_PULL_Pos)
                                         | (GPIO_PIN_CNF_INPUT_Connect << GPIO_PIN_CNF_INPUT_Pos)
                                         | (GPIO_PIN_CNF_DIR_Input << GPIO_PIN_CNF_DIR_Pos);								
-	//°´¼ü
+	//æŒ‰é”®
 	NRF_GPIO->PIN_CNF[KEY_Pin_Num]=(GPIO_PIN_CNF_SENSE_Low << GPIO_PIN_CNF_SENSE_Pos)			//low level
 										| (GPIO_PIN_CNF_DRIVE_S0S1 << GPIO_PIN_CNF_DRIVE_Pos)
                                         | (GPIO_PIN_CNF_PULL_Pullup << GPIO_PIN_CNF_PULL_Pos)
@@ -362,10 +362,10 @@ static void io_interrupt_config(void)
 }
 
 /*
-@Description:´®¿Ú³õÊ¼»¯
-@Input:ÎÞ
-@Output:ÎÞ
-@Return:ÎÞ
+@Description:ä¸²å£åˆå§‹åŒ–
+@Input:æ— 
+@Output:æ— 
+@Return:æ— 
 */
 void UART_Init(void)
 {
@@ -377,32 +377,32 @@ void UART_Init(void)
 }
 
 /************************************************* 
-Description:app³õÊ¼»¯
-Input:ÎÞ
+Description:appåˆå§‹åŒ–
+Input:æ— 
 Output:
-Return:ÎÞ
+Return:æ— 
 *************************************************/ 
 void app_init(void)
 {
 	#ifdef LOG_ON
 	debug_log_init();
 	#endif
-	debug_printf("TFN118A Start³õÊ¼»¯\r\n");
+	debug_printf("TFN118A Startåˆå§‹åŒ–\r\n");
 	SystemParaInit();
-	motor_init();//Õð¶¯µç»ú³õÊ¼»¯	
-	Radio_Init();//ÉäÆµ³õÊ¼»¯
-	rtc0_init();//rtc³õÊ¼»¯
-	io_interrupt_config();//³äµçÖ¸Ê¾¡¢°´¼üio³õÊ¼»¯
+	motor_init();//éœ‡åŠ¨ç”µæœºåˆå§‹åŒ–	
+	Radio_Init();//å°„é¢‘åˆå§‹åŒ–
+	rtc0_init();//rtcåˆå§‹åŒ–
+	io_interrupt_config();//å……ç”µæŒ‡ç¤ºã€æŒ‰é”®ioåˆå§‹åŒ–
 	battery_check_init();
 	rtc0_start();
 }
 /************************************************* 
-Description:IOÖÐ¶Ïº¯Êý
-Input:ÎÞ
+Description:IOä¸­æ–­å‡½æ•°
+Input:æ— 
 Output:
-Return:ÎÞ
+Return:æ— 
 *************************************************/ 
-uint8_t Port_IT_KEY;//°´¼ü
+uint8_t Port_IT_KEY;//æŒ‰é”®
 uint8_t Port_IT_CHR;
 void GPIOTE_IRQHandler(void)
 {
@@ -411,12 +411,12 @@ void GPIOTE_IRQHandler(void)
 		NRF_GPIOTE->EVENTS_PORT = 0;
 		if(0 == Read_CHR)
 		{
-			//ÕýÔÚ³äµç
+			//æ­£åœ¨å……ç”µ
 			Port_IT_CHR++;
-			battery.CHR_Flag = 1;//ÕýÔÚ³äµç
+			battery.CHR_Flag = 1;//æ­£åœ¨å……ç”µ
 			
 		}
-		if(0 == Read_KEY)//°´¼üÖÐ¶Ï
+		if(0 == Read_KEY)//æŒ‰é”®ä¸­æ–­
 		{
 			onKeyEvent();
 			Port_IT_KEY++;
