@@ -273,7 +273,6 @@ void Key_Deal(void)
 uint8_t key_cnt;
 void Key_Func(void)
 {
-
 	if(0 == key_state)//抬起
 	{
 		rtc1_deinit();//停止扫描按键	

@@ -3,6 +3,7 @@
 #include "app_msg.h"
 #include "Debug_log.h"
 #include "rtc.h"
+#include "app_test.h"
 //需要修改的参数
 #define win_interval 3//标签开接收窗口间隔
 //携带命令
@@ -61,7 +62,6 @@ static void Radio_Period_Send(uint8_t cmdflag,uint8_t winflag,uint8_t wait_send_
 
 //文件操作
 File_Typedef f_para;//文件操作命令数据缓存
-
 //射频工作模式
 extern Radio_Work_Mode_Typedef Radio_Work_Mode;
 
@@ -166,7 +166,7 @@ void Raio_Deal(void)
 	static uint8_t wincount;
 	uint32_t ot;
 	wincount++;
-	if(wincount >= win_interval)//携带接收窗口
+	if(wincount > win_interval)//携带接收窗口
 	{
 		wincount = 0;
 		Radio_Period_Send(WithoutCmd,WithWin,SendWait);//发送带接收窗口
@@ -378,7 +378,11 @@ void Radio_Cmd_Deal(void)
 						cmd_packet.packet[cmd_packet.length+RADIO_HEAD_LENGTH-1]=Get_Xor(cmd_packet.packet,cmd_packet.length+1);
 						Radio_Period_Send(WithCmd,WithoutWin,SendWait);		
 						break;
-					default:break;
+					case DEVICE_TEST_CMD:
+					{
+						function_test();
+					}
+					break;
 					case  MESSAGE_CMD://消息处理，每次只接收一条消息
 						RADIO_RX_OT = RADIO_MESSAGE_OT;//如果是消息命令，则延长接收窗口时间
 						if(0 == (cmd_packet.packet[MSG_HEAD_IDX]&MSG_HEAD_Msk))//消息下发通知命令
@@ -414,6 +418,7 @@ void Radio_Cmd_Deal(void)
 									Radio_Work_Mode = Stand_Send;
 									debug_printf("\r\n消息接收完成");
 									Msg_Packet.MSG_FLAG = MSG_IDLE;
+									MSG_Store.New_Msg_Flag = 1;
 								}								
 							}
 
@@ -422,8 +427,8 @@ void Radio_Cmd_Deal(void)
 						rtc_time = (cmd_packet.packet[CMD_IDX+1] << 24)|(cmd_packet.packet[CMD_IDX+2] <<16)
 						|(cmd_packet.packet[CMD_IDX+3]<<8)|(cmd_packet.packet[CMD_IDX+4]); 
 						RTC_Time_Set(rtc_time);
-						
 					break;
+					default:break;
 				}							
 			}
 			else if(READER_ID_MBYTE == packet[TAG_ID_IDX])//广播

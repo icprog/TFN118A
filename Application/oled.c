@@ -125,28 +125,16 @@ void OLED_Display_Off(void)
 @Output:无
 @Return:无
 *************************************************/  	  
-void OLED_Clear(void)  
-{  
-	u8 i,n;  
-	for(i=0;i<PAGE;i++)
-	{
-		for(n=0;n<SSD1316_LCDWIDTH;n++)
-			OLED_GRAM[n][i]=STATE_MIN;  
-	}
-		
-	OLED_Refresh_Gram();//更新显示
-}
-
-void OLED_Full(void)
+void FilleScreen(uint8_t color)
 {
 	u8 i,n;  
 	for(i=0;i<PAGE;i++)
 	{
 		for(n=0;n<SSD1316_LCDWIDTH;n++)
-			OLED_GRAM[n][i]=STATE_MAX;  
+			OLED_GRAM[n][i]=color;  
 	}
 		
-	OLED_Refresh_Gram();//更新显示	
+	OLED_Refresh_Gram();//更新显示
 }
 
 /************************************************* 
@@ -169,8 +157,8 @@ void OLED_Column_Scan(void)
 		 for(column_number_2=MIN;column_number_2<SSD1316_LCDWIDTH;column_number_2++)
 		 {
 			if(column_number_2==column_number_1)
-			OLED_WR_Byte(STATE_MAX,OLED_DATA);
-			else OLED_WR_Byte(STATE_MIN,OLED_DATA);
+			OLED_WR_Byte(COLOR_WHITE,OLED_DATA);
+			else OLED_WR_Byte(COLOR_BLACK,OLED_DATA);
 		 }
 	  } 
 //	  nrf_delay_ms(500);
@@ -240,6 +228,7 @@ void OLED_FILL_A(u8 x1,u8 y1,u8 x2,u8 y2,u8 dot)
 
 /************************************************* 
 @Description:显示字符-水平显示
+x,y为字符左上角
 	x:0~V_Pixels-1  0~127
 	y:0~H_Pixels-1	0~31
 	size:选择字体 12*6/16*8/24*12 
@@ -288,6 +277,7 @@ void OLED_ShowChar(u8 x,u8 y,u8 chr,u8 size,u8 mode)
 	}          
 }
 #else
+
 void OLED_ShowChar(u8 x,u8 y,u8 chr,u8 size,u8 mode)
 {      			    
 	const u8 *addr;//对应的点阵起始地址
@@ -405,7 +395,7 @@ void OLED_ShowString(u8 x,u8 y,const u8 *p,u8 size)
     while((*p<='~')&&(*p>=' '))//判断是不是非法字符!
     {       
         if(x>(SSD1316_LCDWIDTH-(size>>1))){x=0;y+=size;}
-        if(y>(SSD1316_LCDHEIGHT-size)){y=x=0;OLED_Clear();}
+        if(y>(SSD1316_LCDHEIGHT-size)){y=x=0;FilleScreen(COLOR_BLACK);}
         OLED_ShowChar(x,y,*p,size,1);	 
         x+=size/2;
         p++;
@@ -553,6 +543,106 @@ static void OLED_ShowCHR(u8 x,u8 y,u8 mode)
 		}  	 
 	}  
 }
+
+/************************************************* 
+@Description:显示消息
+x,y:中文字左上角
+	x,y:起点坐标 
+	mode：1
+@Input:
+@Output:无
+@Return:无
+字库数据排列竖置横排
+byte 	0	1	~~~	15			
+		b0	b0	~~~	b0
+		~	~	~~~ ~
+		b7	b7	~~~	b7
+byte    16	17		31
+		b0	b0	~~~	b0
+		~	~	~~~ ~
+		b7	b7	~~~	b7
+*************************************************/ 
+void OLED_Show_Chinese(u8 x,u8 y,unsigned int code,u8 mode)
+{
+	uint8_t DZ_Data[32];
+	uint8_t x0,y0;
+	uint8_t t,t1;
+	uint8_t temp;//临时缓存
+	hzbmp16(SEL_GB, code, 0, 16,DZ_Data);//读取GB18030编码的点阵数据
+	//显示上半部分
+	x0 = x;
+	y0 = y;	
+	for(t=0;t<16;t++)
+	{   
+		temp = DZ_Data[t];
+		for(t1=0;t1<8;t1++)
+		{
+			if(temp&0x01)OLED_DrawPoint(x,y,mode);
+			else OLED_DrawPoint(x,y,!mode);
+			temp>>=1;
+			x++;
+			if((x-x0) == 8)
+			{
+				x=x0;
+				y++;
+				break;
+			}
+		}  	 
+	}  
+	x0 = x0+8;
+	y0 = y0;
+	x = x0;
+	y = y0;
+	//显示下半部分
+	for(t=16;t<32;t++)
+	{   
+		temp = DZ_Data[t];
+		for(t1=0;t1<8;t1++)
+		{
+			if(temp&0x01)OLED_DrawPoint(x,y,mode);
+			else OLED_DrawPoint(x,y,!mode);
+			temp>>=1;
+			x++;
+			if((x-x0) == 8)
+			{
+				x=x0;
+				y++;
+				break;
+			}
+		}  	 
+	}  
+}
+
+/************************************************* 
+@Description:显示字符串
+	x,y:起点坐标 
+	p:字符串起始地址
+	num:汉子个数
+@Input:
+@Output:无
+@Return:无
+*************************************************/  
+void OLED_Show_ChineseS(u8 x,u8 y,const u16 *p,u8 num)
+{	
+	uint8_t i=0;
+    for(i=0;i<num;i++)
+    {       
+        if(x>(SSD1316_LCDWIDTH-(16>>1)))//切换到第二列
+		{
+			x=0;
+			y=y+16;
+		}
+        if(y>(SSD1316_LCDHEIGHT-16))
+		{
+			y=x=0;
+			FilleScreen(COLOR_BLACK);
+		}
+        OLED_Show_Chinese(x,y,*p,1);	 
+        x+=16;
+        p++;
+    }  
+}	
+
 /************************************************* 
 @Description:显示消息
 	x,y:起点坐标 
@@ -561,9 +651,47 @@ static void OLED_ShowCHR(u8 x,u8 y,u8 mode)
 @Output:无
 @Return:无
 *************************************************/ 
-void OLE_SHOW_MSG()
+#define ASCII_RANGE 0X7F
+#define Chinese_Width 16
+void OLED_SHOW_MSG(u8 x,u8 y,uint8_t *pBuff)
 {
-	
+	uint8_t i;
+	uint8_t x0,y0,i0;
+	unsigned int code;//gb18030
+	uint8_t Msg_Len = pBuff[1];
+	x0 = x;
+	y0 = y;
+	pBuff = &pBuff[2];
+	for(i=0;i<Msg_Len;i++)
+	{
+		if(pBuff[i] < ASCII_RANGE)//ASCII
+		{
+			OLED_ShowChar(x,y,pBuff[i],ascii_1608,1);
+			i++;//下个字
+			if(i > Msg_Len) break;
+		}
+		else //gb18030
+		{
+			
+			code = (pBuff[i]<<8|pBuff[i+1]);
+			OLED_Show_Chinese(x,y,code,1);
+			i=i+2;
+			if(i > Msg_Len) break;
+		}
+		x = x + Chinese_Width;//下个字起始坐标
+		//滚动效果
+		if(x == 16)//记录每页第二个字
+		{
+			i0 = i;
+		}
+		if(x >= SSD1316_LCDWIDTH)//大于等于最大，第二个字移到X0，Y0开始的起始坐标
+		{
+			x = x0;
+			y = y0;
+			i = i0;
+			OLED_Refresh_Gram();
+		}
+	}
 }
 /************************************************* 
 @Description:清屏函数
@@ -654,7 +782,7 @@ void OLED_Init(void)
 	OLED_WR_Byte(0xA6,OLED_CMD);     	//Set Normal Display 
 	OLED_WR_Byte(0xAF,OLED_CMD);     	//Set Display On 	
 	nrf_delay_ms(100);
-	OLED_Clear();
+
 	
 }  
 
@@ -714,6 +842,7 @@ void OLED_SHOW(void)
 *************************************************/ 
 void OLED_DeInit(void)
 {
+	FilleScreen(COLOR_BLACK);
 	OLED_WR_Byte(0xAE,OLED_CMD);     	//Set Display Off 
 	OLED_WR_Byte(0x8D,OLED_CMD);     	//DC-DC Control Mode Set 
 	OLED_WR_Byte(0x10,OLED_CMD);     	//DC-DC ON/OFF Mode Set 

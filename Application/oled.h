@@ -55,9 +55,15 @@ SSD1316 规格书上128*39Dot page 共4页
 	#define START_PAGE 0xB0
 	#define START_HIGH_BIT 0x10  //列高4位
 	#define START_LOW_BIT 0x00	 //列低4位	
-	#define STATE_MAX 0XFF
-	#define STATE_MIN 0X00
+//	#define STATE_MAX 0XFF
+//	#define STATE_MIN 0X00
 	#define MIN 0
+	/** color chart */
+	typedef enum
+	{
+	  COLOR_BLACK    = 0x00,
+	  COLOR_WHITE    = 0xFF
+	} Color_t; 
 #endif
 
 
@@ -73,13 +79,15 @@ void OLED_Refresh_Gram(void);
 void OLED_Init(void);
 void OLED_Test(void);
 void OLED_DeInit(void);
-void OLED_Clear(void);
+void FilleScreen(uint8_t color);
 void OLED_DrawPoint(u8 x,u8 y,u8 t);
 void OLED_Fill(u8 x1,u8 y1,u8 x2,u8 y2,u8 dot);
 void OLED_ShowChar(u8 x,u8 y,u8 chr,u8 size,u8 mode);
 void OLED_ShowNum(u8 x,u8 y,u32 num,u8 len,u8 size);
 void OLED_ShowString(u8 x,u8 y,const u8 *p,u8 size);	 
 void OLED_SHOW(void);
+void OLED_Show_Chinese(u8 x,u8 y,unsigned int code,u8 mode);
+void OLED_Show_ChineseS(u8 x,u8 y,const u16 *p,u8 num);
 
 
 /*

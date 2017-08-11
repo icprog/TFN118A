@@ -290,6 +290,9 @@ typedef struct
 	uint8_t MSG_PUSH_RID[4];//接收器ID
 	uint8_t MSG_PUSH_TID[4];//标签ID
 }Message_Typedef;
+
+
+
 //消息操作索引号
 #define MSG_HEAD_IDX (CMD_IDX+1)
 #define MSG_DATA_IDX  (CMD_IDX+2)
@@ -323,6 +326,7 @@ typedef enum
 //时间设置
 #define TIME_PARA_LEN							4
 #define TIME_SET_CMD							0XB1	//时间设置命令
+#define DEVICE_TEST_CMD 						0XB2  //整机测试命令
 //函数
 void SystemParaInit(void);
 void UpdateRunPara(void);

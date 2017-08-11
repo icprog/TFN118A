@@ -54,15 +54,21 @@ typedef struct
 	uint8_t MSG_Len;//一条消息长度
 	uint8_t MSG_Num; //消息数量
 	uint8_t MSG_IDX; //消息索引0~2
-
+	//标签-消息显示
+	uint8_t Tag_Msg_Buf[3][130];//消息缓冲区  0最新消息 2最旧消息
+	uint8_t Tag_Msg_Num; //消息数量
+	uint8_t New_Msg_Flag;//新消息标志位
 }MSG_Store_Typedef;
+
+
 
 u16 Message_Deal(uint8_t *p_mpacket);
 void MSG_Addr_Init(void);
 void MSG_Erase_ALL(void);
 void MSG_Find_New(void);
 void MSG_Write(uint8_t idx,u8* buff);
-uint8_t Message_Get(uint8_t tag_msg_seq);
+void Tag_Message_Get(void);
+uint8_t Reader_Message_Get(uint8_t tag_msg_seq);
 void Radio_MSG_Start(uint8_t *msg_buf,uint8_t* src);
 void Radio_MSG_Push(uint8_t* src);
 void MSG_Packet_ReSet(void);

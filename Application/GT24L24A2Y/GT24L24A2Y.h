@@ -1,5 +1,6 @@
 #ifndef _GT24L24A2Y
 #define _GT24L24A2Y
+#include "HFMA2Ylib.h"
 
 //命令
 #define READ_CMD 0X03     //一般读取		

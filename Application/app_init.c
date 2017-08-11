@@ -8,11 +8,11 @@
 
 bat_typedef battery;//电池电量
 /************************************************* 
-Description:配置低频时钟时钟源  
-Input:
+@Description:配置低频时钟时钟源  
+@Input:
 （1）、source : 1:选择外部晶振 XOSC 0：内部rc ROSC
-Output:无
-Return:无
+@Output:无
+@Return:无
 *************************************************/  
 static void lfclk_init(uint8_t source)
 {
@@ -28,10 +28,10 @@ static void lfclk_init(uint8_t source)
 }
 
 /************************************************* 
-Description:产生0~255随机数 
-Input:无
-Output:输出随机值
-Return:无
+@Description:产生0~255随机数 
+@Input:无
+@Output:输出随机值
+@Return:无
 *************************************************/ 
 //uint8_t rng_value = 0;
 static uint8_t random_vector_generate()
@@ -91,10 +91,10 @@ static void rtc0_stop(void)
 }
 
 /************************************************* 
-Description:rtc1初始化  
-Input:
-Output:无
-Return:无
+@Description:rtc1初始化  
+@Input:
+@Output:无
+@Return:无
 *************************************************/ 
 void rtc1_init(void)
 {	
@@ -110,10 +110,10 @@ void rtc1_init(void)
 }
 
 /************************************************* 
-Description:rtc1初始化  
-Input:
-Output:无
-Return:无
+@Description:rtc1初始化  
+@Input:
+@Output:无
+@Return:无
 *************************************************/ 
 void rtc1_deinit(void)
 {	
@@ -123,10 +123,10 @@ void rtc1_deinit(void)
 }
 
 /************************************************* 
-Description:广播间隔增加0~7.65ms的随机延时
-Input:无
-Output:无
-Return:无
+@Description:广播间隔增加0~7.65ms的随机延时
+@Input:无
+@Output:无
+@Return:无
 */
 void rtc_update_interval(void)
 {
@@ -145,10 +145,10 @@ void rtc_update_interval(void)
 	
 }
 /************************************************* 
-Description:启动外部晶振
-Input:无
-Output:无
-Return:无
+@Description:启动外部晶振
+@Input:无
+@Output:无
+@Return:无
 *************************************************/ 
 void xosc_hfclk_start(void)
 {
@@ -173,10 +173,10 @@ void xosc_hfclk_start(void)
 }
 
 /************************************************* 
-Description:关闭外部晶振
-Input:无
-Output:无
-Return:无
+@Description:关闭外部晶振
+@Input:无
+@Output:无
+@Return:无
 *************************************************/ 
 void xosc_hfclk_stop(void)
 {
@@ -189,10 +189,10 @@ void xosc_hfclk_stop(void)
 
 #ifdef TFN118A
 /************************************************* 
-Description:震动马达初始化
-Input:无
-Output:无
-Return:无
+@Description:震动马达初始化
+@Input:无
+@Output:无
+@Return:无
 *************************************************/ 
 static void motor_init(void)
 {
@@ -205,10 +205,10 @@ static void motor_init(void)
 
 
 /************************************************* 
-Description:电量采集初始化 1-1.05v
-Input:无
-Output:无
-Return:无
+@Description:电量采集初始化 1-1.05v
+@Input:无
+@Output:无
+@Return:无
 *************************************************/ 
 void battery_check_init(void)
 {
@@ -221,10 +221,10 @@ void battery_check_init(void)
 }
 
 /************************************************* 
-Description:启动一次ADC采集，初始化延迟1s后，开始采集
-Input:无
-Output:无
-Return:无
+@Description:启动一次ADC采集，初始化延迟1s后，开始采集
+@Input:无
+@Output:无
+@Return:无
 *************************************************/ 
 static uint16_t adc_convert_single(void)
 {
@@ -296,10 +296,10 @@ uint16_t adc_convert_times(void)
 	return val;
 }
 /************************************************* 
-Description:电量采集
-Input:无
-Output:
-Return:无
+@Description:电量采集
+@Input:无
+@Output:
+@Return:无
 *************************************************/ 
 uint16_t adc_value;
 u8 battery_check_read(void)
@@ -336,10 +336,10 @@ u8 battery_check_read(void)
 }
 
 /************************************************* 
-Description:中断引脚初始化
-Input:无
-Output:
-Return:无
+@Description:中断引脚初始化
+@Input:无
+@Output:
+@Return:无
 *************************************************/ 
 static void io_interrupt_config(void)
 {
@@ -377,10 +377,10 @@ void UART_Init(void)
 }
 
 /************************************************* 
-Description:app初始化
-Input:无
-Output:
-Return:无
+@Description:app初始化
+@Input:无
+@Output:
+@Return:无
 *************************************************/ 
 void app_init(void)
 {
@@ -395,12 +395,13 @@ void app_init(void)
 	io_interrupt_config();//充电指示、按键io初始化
 	battery_check_init();
 	rtc0_start();
+	
 }
 /************************************************* 
-Description:IO中断函数
-Input:无
-Output:
-Return:无
+@Description:IO中断函数
+@Input:无
+@Output:
+@Return:无
 *************************************************/ 
 uint8_t Port_IT_KEY;//按键
 uint8_t Port_IT_CHR;

@@ -229,7 +229,7 @@ u16 Message_Deal(uint8_t *p_mpacket)
 			MSG_Store.MSG_BUFF[MSG_LEN_IDX] = MSG_Store.MSG_BUFF_IDX - MSG_FLASH_HEAD_LEN;//MSG_BUFF_IDX-2
 			MSG_Write(MSG_Store.MSG_IDX,MSG_Store.MSG_BUFF);
 			cmd_state = MSG_START_END_VALUE;
-			debug_printf("\r\n包接收完成");
+			debug_printf("\n\r接收完成");
 			MSG_Packet_ReSet();//包接收完成置位
 			return cmd_state;
 		}
@@ -239,12 +239,39 @@ u16 Message_Deal(uint8_t *p_mpacket)
 }
 
 /************************************************* 
+@Description:标签-获取消息
+@Input:
+@Output:
+@Return:
+*************************************************/ 
+void Tag_Message_Get(void)
+{
+	uint32_t addr;//地址
+	uint8_t msg_len;//消息长度
+	uint8_t i;
+	uint8_t msg_idx;//消息索引号
+	//获取最新消息索引号
+	msg_idx = MSG_Store.MSG_IDX;
+	for(i=0;i<MSG_FLASH_NUM;i++)
+	{
+		addr = *MSG_Store.MSG_ADDR[msg_idx];//获取地址
+		msg_len = *(uint8_t *)(addr+MSG_LEN_IDX);	
+		if(msg_len <= MSG_MAX_LEN && msg_len > 0)
+		{
+			nrf_nvmc_read_bytes(addr,&MSG_Store.Tag_Msg_Buf[i][0],(msg_len+MSG_FLASH_HEAD_LEN));//读取数据
+			MSG_Store.Tag_Msg_Num++;
+		}
+		msg_idx = (msg_idx + MSG_FLASH_NUM - 1)%MSG_FLASH_NUM;//索引号减去1
+	}
+}
+
+/************************************************* 
 @Description:读写器-获取要下发的消息
 @Input:
 @Output:
 @Return:1:获取成功，0：获取失败
 *************************************************/ 
-uint8_t Message_Get(uint8_t msg_head)
+uint8_t Reader_Message_Get(uint8_t msg_head)
 {
 	uint8_t Diff;//差值
 	uint8_t i,j;

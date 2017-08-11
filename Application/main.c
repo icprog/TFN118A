@@ -5,8 +5,9 @@
 #include "app_key.h"
 #include "rtc.h"
 #include "app_radio.h"
+#include "app_msg.h"
 extern uint8_t rtc_flag;//定时，射频发送
-
+extern MSG_Store_Typedef MSG_Store;//消息定义消息序列号0~7
 
 uint8_t rtc0_cnt;//定时器计数
 #define bat_chr_cycle 1 //1s采集一次
@@ -54,6 +55,7 @@ void Bat_Detect(void)
 @Return:无
 *************************************************/ 
 uint32_t test_i;
+uint8_t test_j = 0;
 int main(void)
 {
 	app_init();
@@ -65,6 +67,7 @@ int main(void)
 	nrf_delay_ms(1000);
 	battery.bat_capacity = battery_check_read();
 	RTC_Time_Set(0);
+	
 	while(1)
 	{
 //		Key_Deal();//按键
@@ -76,10 +79,26 @@ int main(void)
 			rtc_flag = 0;
 			test_i++;
 //			if(test_i<100)
-				Raio_Deal();//射频功能		
-
+			Raio_Deal();//射频功能	
+			test_j++;
+			if(test_j==3)
+			{
+				OLED_Init();			
+				OLED_SHOW();
+			}
+			else if(test_j==6)
+			{
+				OLED_DeInit();
+				test_j = 0;
+			}
+			if(MSG_Store.New_Msg_Flag)
+			{
+				MSG_Store.New_Msg_Flag = 0;
+				OLED_Init();
+				FilleScreen(COLOR_WHITE);//点亮全屏
+				
+			}
 		}
-		OLED_SHOW();
 		__WFI();
 	}
 }
