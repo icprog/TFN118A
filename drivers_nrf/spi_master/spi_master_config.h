@@ -15,10 +15,10 @@
 #define SPI_OPERATING_FREQUENCY  ( 0x02000000UL << (uint32_t)Freq_1Mbps )  /*!< Slave clock frequency. */
 
 /*  SPI0 */
-#define SPI_PSELSCK0              3   /*!< GPIO pin number for SPI clock (note that setting this to 31 will only work for loopback purposes as it not connected to a pin) */
-#define SPI_PSELMOSI0             4   /*!< GPIO pin number for Master Out Slave In    */
-#define SPI_PSELMISO0             6   /*!< GPIO pin number for Master In Slave Out    */
-#define SPI_PSELSS0               5   /*!< GPIO pin number for Slave Select           */
+#define SPI_PSELSCK0              4   /*!< GPIO pin number for SPI clock (note that setting this to 31 will only work for loopback purposes as it not connected to a pin) */
+#define SPI_PSELMOSI0             7   /*!< GPIO pin number for Master Out Slave In    */
+#define SPI_PSELMISO0             5   /*!< GPIO pin number for Master In Slave Out    */
+#define SPI_PSELSS0               3   /*!< GPIO pin number for Slave Select           */
 
 /*  SPI1 */
 #define SPI_PSELSCK1              29   /*!< GPIO pin number for SPI clock              */

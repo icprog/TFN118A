@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include "sys.h"
 //#include "flash.h"
 
 typedef  unsigned char  u8;

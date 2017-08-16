@@ -57,7 +57,7 @@ static bool twi_master_write(uint8_t *data, uint8_t data_length, bool issue_stop
             /* Wait until stop sequence is sent */
             while(NRF_TWI1->EVENTS_STOPPED == 0) 
             { 
-							uint8_t err=1;
+//							uint8_t err=1;
 							#if TWI_MASTER_TIMEOUT_COUNTER_LOAD_VALUE != 0
 							if (timeout_counter-- == 0)
 							{
@@ -89,7 +89,7 @@ static bool twi_master_write(uint8_t *data, uint8_t data_length, bool issue_stop
         /* Wait until stop sequence is sent */ 
         while(NRF_TWI1->EVENTS_STOPPED == 0) 
         { 
-					uint8_t err=1;
+//					uint8_t err=1;
 					#if TWI_MASTER_TIMEOUT_COUNTER_LOAD_VALUE != 0
 						if (timeout_counter-- == 0)
 						{
@@ -146,7 +146,7 @@ static bool twi_master_read(uint8_t *data, uint8_t data_length, bool issue_stop_
             NRF_TWI1->TASKS_STOP     = 1; 
             while(NRF_TWI1->EVENTS_STOPPED == 0) 
             { 
-							uint8_t err=1;
+//							uint8_t err=1;
 							#if TWI_MASTER_TIMEOUT_COUNTER_LOAD_VALUE != 0
 								if (timeout_counter-- == 0)
 								{
@@ -180,7 +180,7 @@ static bool twi_master_read(uint8_t *data, uint8_t data_length, bool issue_stop_
     NRF_TWI1->EVENTS_STOPPED = 0;
     while(NRF_TWI1->EVENTS_STOPPED == 0)
     {
-			uint8_t err=1;
+//			uint8_t err=1;
 			#if TWI_MASTER_TIMEOUT_COUNTER_LOAD_VALUE != 0
 				if (timeout_counter-- == 0)
 				{

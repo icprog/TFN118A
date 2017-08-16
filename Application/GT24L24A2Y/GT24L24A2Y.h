@@ -15,4 +15,5 @@
 #define LEAVE_SLEEP_CMD 0XAB //唤醒
 
 extern void GT24L24A2Y_Test(void);
+extern void GT24L24A2Y_Spi_Init(void);
 #endif

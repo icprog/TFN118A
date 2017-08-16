@@ -18,28 +18,29 @@
 #ifdef TFN118A
 
 	
-#define Motor_Pin_Num 16
+#define Motor_Pin_Num 13
 #define Motor_Run() do{NRF_GPIO->OUTSET = (1 << Motor_Pin_Num);}while(0)
 #define Motor_Stop() do{NRF_GPIO->OUTCLR = (1 << Motor_Pin_Num);}while(0)
 
-#define ADC_Pin_Num ADC_CONFIG_PSEL_AnalogInput2
+#define ADC_Pin_Num ADC_CONFIG_PSEL_AnalogInput7
 //OLED
-#define OLED_PWR_Pin_Num  02
+#define OLED_PWR_Pin_Num  14 
 #define OLED_PWR_ON() do{NRF_GPIO->OUTSET = (1 << OLED_PWR_Pin_Num);}while(0)//OLED电源开启
 #define OLED_PWR_OFF() do{NRF_GPIO->OUTCLR = (1 << OLED_PWR_Pin_Num);}while(0)//OLED电源关闭
-#define OLED_RES_Pin_Num  15
+#define OLED_RES_Pin_Num  8
 #define OLED_RES_LOW()	do{NRF_GPIO->OUTCLR = (1 << OLED_RES_Pin_Num);}while(0) //复位
 #define OLED_RES_HIGH()	do{NRF_GPIO->OUTSET = (1 << OLED_RES_Pin_Num);}while(0)
 //充电指示
-#define USB_CHR_Pin_Num  13
+#define USB_CHR_Pin_Num  9
 #define Read_CHR	((NRF_GPIO->IN >> USB_CHR_Pin_Num)&1)    //0:表示正在充电
 //按键
-#define KEY_Pin_Num		7
+#define KEY_Pin_Num		25
 //#define KEY_Pin_Num		16
 #define Read_KEY 	((NRF_GPIO->IN >> KEY_Pin_Num)&1)		//0：表示有按键按下
 #define Key_Read_Disable_Interrupt()  do {NRF_GPIO->PIN_CNF[KEY_Pin_Num] &= (~GPIO_PIN_CNF_SENSE_Msk); }while(0)
 #define Key_Read_Enable_Interrupt() do {NRF_GPIO->PIN_CNF[KEY_Pin_Num] |= (GPIO_PIN_CNF_SENSE_Low << GPIO_PIN_CNF_SENSE_Pos);}while(0)
 
+//其它引脚，twi_master_config.h\spi_master_config.h -spi0文件中
 //电量采集参数定义
 #define ZeroThreshold 725
 #define OneThreshold 789     //
@@ -63,7 +64,22 @@ typedef struct
 	uint8_t Bat_Full;//1:已充满
 }bat_typedef;
 #endif
-
+//OLED显示
+#define OLED_PowerOn_Time 100  //oled亮4s
+typedef struct
+{
+	uint8_t OLED_PowerOn;//1:表示OLED亮
+	uint8_t OLED_TimeCnt;//计数值
+	uint8_t key_short_cnt;//按键短按次数
+}OLED_Typedef;
+typedef enum
+{
+	empty_page=0,
+	clock_page=1,
+	msg1_page=2,
+	msg2_page=3,
+	msg3_page=4
+}OLED_Page_Typedef;
 //中断优先级定义
 typedef enum
 {

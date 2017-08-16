@@ -85,7 +85,8 @@ void OLED_Fill(u8 x1,u8 y1,u8 x2,u8 y2,u8 dot);
 void OLED_ShowChar(u8 x,u8 y,u8 chr,u8 size,u8 mode);
 void OLED_ShowNum(u8 x,u8 y,u32 num,u8 len,u8 size);
 void OLED_ShowString(u8 x,u8 y,const u8 *p,u8 size);	 
-void OLED_SHOW(void);
+void OLED_SHOW_Clock(void);
+void OLED_SHOW_MSG(u8 x,u8 y,uint8_t *pBuff);
 void OLED_Show_Chinese(u8 x,u8 y,unsigned int code,u8 mode);
 void OLED_Show_ChineseS(u8 x,u8 y,const u16 *p,u8 num);
 

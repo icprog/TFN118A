@@ -2,11 +2,13 @@
 #include "app_init.h"
 #include "simple_uart.h"
 #include "Debug_log.h"
+#include "nrf_delay.h"
 #define rtc_interval 1  //单位s
 #define rtc_base ((32768*rtc_interval) - 1)
 
 
 bat_typedef battery;//电池电量
+
 /************************************************* 
 @Description:配置低频时钟时钟源  
 @Input:
@@ -398,7 +400,7 @@ void app_init(void)
 	
 }
 /************************************************* 
-@Description:IO中断函数
+@Description:IO中断函数,下降沿
 @Input:无
 @Output:
 @Return:无
@@ -419,6 +421,7 @@ void GPIOTE_IRQHandler(void)
 		}
 		if(0 == Read_KEY)//按键中断
 		{
+//			nrf_delay_ms(10);
 			onKeyEvent();
 			Port_IT_KEY++;
 		}

@@ -13,7 +13,7 @@ uint8_t rtc0_cnt;//定时器计数
 #define bat_chr_cycle 1 //1s采集一次
 #define bat_cycle 60 //60s采集一次
 extern bat_typedef battery;
-
+OLED_Typedef OLED1;//oled状态
 
 #if TFN118A
 /************************************************* 
@@ -46,6 +46,26 @@ void Bat_Detect(void)
 		}
 	}	
 }
+/************************************************* 
+@Description:OLED显示
+@Input:无
+@Output:
+@Return:无
+*************************************************/ 
+void OLED_SHOW(void)
+{
+	switch(OLED1.OLED_PowerOn)
+	{
+		case empty_page:OLED_DeInit();break;
+		case clock_page:OLED_Init();OLED_SHOW_Clock();break;
+		case msg1_page:OLED_Init();FilleScreen(COLOR_BLACK);OLED_ShowChar(0,0,'A',16,1);OLED_Refresh_Gram();break;
+		case msg2_page:OLED_Init();FilleScreen(COLOR_BLACK);OLED_ShowChar(0,0,'B',16,1);OLED_Refresh_Gram();break;
+		case msg3_page:OLED_Init();FilleScreen(COLOR_BLACK);OLED_ShowChar(0,0,'C',16,1);OLED_Refresh_Gram();break;
+//		case msg1_page:OLED_Init();OLED_SHOW_MSG(0,16,&MSG_Store.Tag_Msg_Buf[0][0]);break;
+//		case msg2_page:OLED_Init();OLED_SHOW_MSG(0,16,&MSG_Store.Tag_Msg_Buf[1][0]);break;
+//		case msg3_page:OLED_Init();OLED_SHOW_MSG(0,16,&MSG_Store.Tag_Msg_Buf[2][0]);break;
+	}
+}
 #endif
 
 /************************************************* 
@@ -63,6 +83,7 @@ int main(void)
 	function_test();
 	#endif
 	OLED_Init();
+	OLED_SHOW_Clock();
 	//初始电量采集
 	nrf_delay_ms(1000);
 	battery.bat_capacity = battery_check_read();
@@ -70,8 +91,10 @@ int main(void)
 	
 	while(1)
 	{
-//		Key_Deal();//按键
-//		Bat_Detect();//电量采集
+		Key_Deal();//按键
+
+//		OLED_SHOW();//放到按键中
+		Bat_Detect();//电量采集
 		//1s定时
 		if(rtc_flag)
 		{
@@ -81,22 +104,12 @@ int main(void)
 //			if(test_i<100)
 			Raio_Deal();//射频功能	
 			test_j++;
-			if(test_j==3)
+			//OLED关屏
+			OLED1.OLED_TimeCnt++;
+			if(OLED1.OLED_TimeCnt > OLED_PowerOn_Time)
 			{
-				OLED_Init();			
-				OLED_SHOW();
-			}
-			else if(test_j==6)
-			{
+				OLED1.OLED_PowerOn = empty_page;
 				OLED_DeInit();
-				test_j = 0;
-			}
-			if(MSG_Store.New_Msg_Flag)
-			{
-				MSG_Store.New_Msg_Flag = 0;
-				OLED_Init();
-				FilleScreen(COLOR_WHITE);//点亮全屏
-				
 			}
 		}
 		__WFI();

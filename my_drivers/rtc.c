@@ -1,14 +1,14 @@
 /*******************************************************************************
-** °æÈ¨:		
-** ÎÄ¼şÃû: 		rtc.c
-** °æ±¾£º  		1.0
-** ¹¤×÷»·¾³: 	MDK-ARM 5.23
-** ×÷Õß: 		cc
-** Éú³ÉÈÕÆÚ: 	2017-07-14
-** ¹¦ÄÜ:		  
-** Ïà¹ØÎÄ¼ş:	rtc.h
-** ĞŞ¸ÄÈÕÖ¾£º	
-** °æÈ¨ËùÓĞ   
+** ç‰ˆæƒ:		
+** æ–‡ä»¶å: 		rtc.c
+** ç‰ˆæœ¬ï¼š  		1.0
+** å·¥ä½œç¯å¢ƒ: 	MDK-ARM 5.23
+** ä½œè€…: 		cc
+** ç”Ÿæˆæ—¥æœŸ: 	2017-07-14
+** åŠŸèƒ½:		  
+** ç›¸å…³æ–‡ä»¶:	rtc.h
+** ä¿®æ”¹æ—¥å¿—ï¼š	
+** ç‰ˆæƒæ‰€æœ‰   
 *******************************************************************************/
 
 #include "rtc.h"
@@ -17,22 +17,22 @@
 
 #define TEST 0
 #if TEST
-//rtc_typedef Global_Time = {0x20,0x02,0x28,0x23,0x59,0x50,0x07};  //ÄêÔÂÈÕÊ±·ÖÃë ĞÇÆÚ 
-//uint8_t Global_Time[7] = {20,2,29,23,59,50,7};  //ÄêÔÂÈÕÊ±·ÖÃë ĞÇÆÚ 
-rtc_typedef Global_Time = {0x20,0x12,0x31,0x23,0x59,0x50,0x07};  //ÄêÔÂÈÕÊ±·ÖÃë ĞÇÆÚ 
+//rtc_typedef Global_Time = {0x20,0x02,0x28,0x23,0x59,0x50,0x07};  //å¹´æœˆæ—¥æ—¶åˆ†ç§’ æ˜ŸæœŸ 
+//uint8_t Global_Time[7] = {20,2,29,23,59,50,7};  //å¹´æœˆæ—¥æ—¶åˆ†ç§’ æ˜ŸæœŸ 
+rtc_typedef Global_Time = {0x20,0x12,0x31,0x23,0x59,0x50,0x07};  //å¹´æœˆæ—¥æ—¶åˆ†ç§’ æ˜ŸæœŸ 
 
-//rtc_typedef Global_Time = {0x21,0x02,0x28,0x23,0x59,0x50,0x04};//ÄêÔÂÈÕÊ±·ÖÃë ĞÇÆÚ 
+//rtc_typedef Global_Time = {0x21,0x02,0x28,0x23,0x59,0x50,0x04};//å¹´æœˆæ—¥æ—¶åˆ†ç§’ æ˜ŸæœŸ 
 #else
-rtc_typedef Global_Time = {0x17,0x07,0x14,0x15,0x09,0x00,0x05};  //ÄêÔÂÈÕÊ±·ÖÃë ĞÇÆÚ 
+rtc_typedef Global_Time = {0x17,0x07,0x14,0x15,0x09,0x00,0x05};  //å¹´æœˆæ—¥æ—¶åˆ†ç§’ æ˜ŸæœŸ 
 #endif
-//±êÇ©×´Ì¬×Ö
-extern TAG_STATE_Typedef TAG_STATE;//±êÇ©
-uint8_t rtc_flag;//¶¨Ê±£¬ÉäÆµ·¢ËÍ
+//æ ‡ç­¾çŠ¶æ€å­—
+extern TAG_STATE_Typedef TAG_STATE;//æ ‡ç­¾
+uint8_t rtc_flag;//å®šæ—¶ï¼Œå°„é¢‘å‘é€
 //if(1==get_uart1_ready(0xffff))
 //{
 #define BCD
 #ifdef BCD
-/*BCDÈÕÀúËã·¨*/
+/*BCDæ—¥å†ç®—æ³•*/
 //uint8_t BCDInc(uint8_t *ucByte, uint8_t ucMin, uint8_t ucMax)
 //{
 //	if(*ucByte<ucMin||*ucByte>ucMax) *ucByte=ucMin;
@@ -45,7 +45,7 @@ uint8_t rtc_flag;//¶¨Ê±£¬ÉäÆµ·¢ËÍ
 //	return 0;
 //}
 
-////¸ù¾İÌá¹©µÄÄê¡¢ÔÂ¼ÆËãµ±ÔÂ×îºóÒ»ÈÕ£¬Ö§³ÖÈòÄê£¬BCD¸ñÊ½
+////æ ¹æ®æä¾›çš„å¹´ã€æœˆè®¡ç®—å½“æœˆæœ€åä¸€æ—¥ï¼Œæ”¯æŒé—°å¹´ï¼ŒBCDæ ¼å¼
 //uint8_t DateMaxCalc21Cn(uint8_t ucBcdYeah, uint8_t ucBcdMonth)
 //{
 //	uint8_t ucBcdtmp1;
@@ -89,11 +89,11 @@ uint8_t rtc_flag;//¶¨Ê±£¬ÉäÆµ·¢ËÍ
 
 
 /************************************************* 
-@Description:Ê®½øÖÆ×ª»»³ÉBCD
+@Description:åè¿›åˆ¶è½¬æ¢æˆBCD
        16->0X16
-@Input:ÎŞ
-@Output:ÎŞ
-@Return:ÎŞ
+@Input:æ— 
+@Output:æ— 
+@Return:æ— 
 *************************************************/ 
 u8 DecToBCD(uint8_t src)
 {
@@ -101,11 +101,11 @@ u8 DecToBCD(uint8_t src)
 }
 
 /************************************************* 
-@Description:BCD×ª»»³É10½øÖÆ
+@Description:BCDè½¬æ¢æˆ10è¿›åˆ¶
        16->0X16
-@Input:ÎŞ
-@Output:ÎŞ
-@Return:ÎŞ
+@Input:æ— 
+@Output:æ— 
+@Return:æ— 
 *************************************************/ 
 u8 BCDToDec(uint8_t src)
 {
@@ -114,10 +114,10 @@ u8 BCDToDec(uint8_t src)
 
 
 /************************************************* 
-@Description:rtcÊ±¼äÀÛ¼Ó£¬·µ»ØÊ±¼ä
-@Input:ÎŞ
-@Output:·µ»Ø1£¬¿¼ÂÇÊÇ·ñ¸üĞÂºóÃæµÄÊ±¼ä
-@Return:ÎŞ
+@Description:rtcæ—¶é—´ç´¯åŠ ï¼Œè¿”å›æ—¶é—´
+@Input:æ— 
+@Output:è¿”å›1ï¼Œè€ƒè™‘æ˜¯å¦æ›´æ–°åé¢çš„æ—¶é—´
+@Return:æ— 
 *************************************************/ 
 uint8_t CalendarIncBCD(uint8_t *ucByte, uint8_t ucMin, uint8_t ucMax)
 {
@@ -132,28 +132,28 @@ uint8_t CalendarIncBCD(uint8_t *ucByte, uint8_t ucMin, uint8_t ucMax)
 }
 
 /************************************************* 
-@Description:¸ù¾İÌá¹©µÄÄê¡¢ÔÂ¼ÆËãµ±ÔÂ×îºóÒ»ÈÕ£¬Ö§³ÖÈòÄê,²¢ÇÒÖ»¿¼ÂÇ20xxÄê
-@Input:ÎŞ
-@Output:ÎŞ
-@Return:ÎŞ
+@Description:æ ¹æ®æä¾›çš„å¹´ã€æœˆè®¡ç®—å½“æœˆæœ€åä¸€æ—¥ï¼Œæ”¯æŒé—°å¹´,å¹¶ä¸”åªè€ƒè™‘20xxå¹´
+@Input:æ— 
+@Output:æ— 
+@Return:æ— 
 *************************************************/ 
 static uint8_t DateMaxCalc21Cn(uint8_t Year, uint8_t Month)
 {
 	uint8_t tmp1;
 	switch(Month)
 	{
-		case 0x01:case 0x03:case 0x05:case 0x07:case 0x08:case 0x10:case 0x12: //31Ìì
+		case 0x01:case 0x03:case 0x05:case 0x07:case 0x08:case 0x10:case 0x12: //31å¤©
 			tmp1 = 0x31;
 			break;
-		case 0x04:case 0x06:case 0x09:case 0x11://30Ìì
+		case 0x04:case 0x06:case 0x09:case 0x11://30å¤©
 			tmp1 = 0x30;
 			break;
 		case 2:
-			Year = BCDToDec(Year);//×ª³É10½øÖÆ
-			if(0 == (Year%4))//µ±Äê·İ²»ÊÇÕı°İÄêÊ±£¬Äê·İÄÜ±»4Õû³ıµÄÊÇÈòÄê£¬·ñÔòÊÇÆ½Äê
-				tmp1 = 0x29;//ÈòÄê29Ìì
+			Year = BCDToDec(Year);//è½¬æˆ10è¿›åˆ¶
+			if(0 == (Year%4))//å½“å¹´ä»½ä¸æ˜¯æ­£æ‹œå¹´æ—¶ï¼Œå¹´ä»½èƒ½è¢«4æ•´é™¤çš„æ˜¯é—°å¹´ï¼Œå¦åˆ™æ˜¯å¹³å¹´
+				tmp1 = 0x29;//é—°å¹´29å¤©
 			else
-				tmp1 = 0x28;//Æ½Äê28Ìì
+				tmp1 = 0x28;//å¹³å¹´28å¤©
 		default:
 			break;
 	}			
@@ -161,10 +161,10 @@ static uint8_t DateMaxCalc21Cn(uint8_t Year, uint8_t Month)
 }
 
 /************************************************* 
-@Description:Ê±¼ä¸üĞÂ
-@Input:ÎŞ
-@Output:ÎŞ
-@Return:ÎŞ
+@Description:æ—¶é—´æ›´æ–°
+@Input:æ— 
+@Output:æ— 
+@Return:æ— 
 *************************************************/ 
 void Calendar21Century(rtc_typedef* pRTCtime)	//20xx
 {
@@ -174,7 +174,7 @@ void Calendar21Century(rtc_typedef* pRTCtime)	//20xx
 		{
 			if(CalendarIncBCD(&pRTCtime->hour,0x00,0x23))		//hour
 			{
-				CalendarIncBCD(&pRTCtime->week,0x01,0x07);//ĞÇÆÚ
+				CalendarIncBCD(&pRTCtime->week,0x01,0x07);//æ˜ŸæœŸ
 				if(CalendarIncBCD(&pRTCtime->day,1,DateMaxCalc21Cn(pRTCtime->year, pRTCtime->month)))	//date
 				{
 					if(CalendarIncBCD(&pRTCtime->month,0x01,0x12))		//month
@@ -188,10 +188,10 @@ void Calendar21Century(rtc_typedef* pRTCtime)	//20xx
 }
 
 /************************************************* 
-@Description:½ÓÊÕÆ÷-bcd ¸ñÊ½¼ì²é
-@Input:ÎŞ
-@Output:ÎŞ
-@Return:ÎŞ
+@Description:æ¥æ”¶å™¨-bcd æ ¼å¼æ£€æŸ¥
+@Input:æ— 
+@Output:æ— 
+@Return:æ— 
 *************************************************/ 
 uint8_t BCD_Check(uint8_t uBCD)
 {
@@ -203,10 +203,10 @@ uint8_t BCD_Check(uint8_t uBCD)
 }
 
 /************************************************* 
-@Description:½ÓÊÕÆ÷-bcd Ê±¼ä¸ñÊ½¼ì²é
-@Input:ÎŞ
-@Output:ÎŞ
-@Return:ÎŞ
+@Description:æ¥æ”¶å™¨-bcd æ—¶é—´æ ¼å¼æ£€æŸ¥
+@Input:æ— 
+@Output:æ— 
+@Return:æ— 
 *************************************************/ 
 uint8_t RTC_BCD_Check(rtc_typedef* pRTCtime)
 {
@@ -227,9 +227,9 @@ uint8_t RTC_BCD_Check(rtc_typedef* pRTCtime)
 
 /************************************************* 
 @Description:rtc Time_DecCheck
-@Input:ÎŞ
-@Output:ÎŞ
-@Return:ÎŞ
+@Input:æ— 
+@Output:æ— 
+@Return:æ— 
 *************************************************/ 
 uint8_t Time_DecCheck(rtc_typedef RTCTime)
 {
@@ -246,10 +246,10 @@ uint8_t Time_DecCheck(rtc_typedef RTCTime)
 	return TRUE;
 }
 /************************************************* 
-@Description:rtcÊ±¼äÉèÖÃ
-@Input:ÎŞ
-@Output:ÎŞ
-@Return:ÎŞ
+@Description:rtcæ—¶é—´è®¾ç½®
+@Input:æ— 
+@Output:æ— 
+@Return:æ— 
 *************************************************/ 
 void RTC_Time_Set(uint32_t RTCtime)
 {
@@ -269,7 +269,7 @@ void RTC_Time_Set(uint32_t RTCtime)
 	
 	if(TRUE == Time_DecCheck(temp_time))
 	{
-		//×ª³ÉBCD
+		//è½¬æˆBCD
 		Global_Time.sec = DecToBCD(temp_time.sec);//second
 		Global_Time.min = DecToBCD(temp_time.min);//minute
 		Global_Time.hour = DecToBCD(temp_time.hour);//hour
@@ -282,10 +282,10 @@ void RTC_Time_Set(uint32_t RTCtime)
 }
 
 /************************************************* 
-@Description:»ñµÃĞÇÆÚ
-@Input:ÎŞ
-@Output:·µ»ØĞÇÆÚÈÕ¿ªÊ¼£¬´Ó0¿ªÊ¼µÄË÷Òı£¬¼ÈĞÇÆÚÈÕ¶ÔÓ¦0£¬ĞÇÆÚÁù¶ÔÓ¦6
-@Return:ÎŞ
+@Description:è·å¾—æ˜ŸæœŸ
+@Input:æ— 
+@Output:è¿”å›æ˜ŸæœŸæ—¥å¼€å§‹ï¼Œä»0å¼€å§‹çš„ç´¢å¼•ï¼Œæ—¢æ˜ŸæœŸæ—¥å¯¹åº”0ï¼Œæ˜ŸæœŸå…­å¯¹åº”6
+@Return:æ— 
 *************************************************/ 
 DAY_OF_WEEK get_day_of_week(rtc_typedef RTCTime)
 {
@@ -299,10 +299,10 @@ DAY_OF_WEEK get_day_of_week(rtc_typedef RTCTime)
 
 
 /************************************************* 
-@Description:rtcÊ±¼äÀÛ¼Ó£¬·µ»ØÊ±¼ä
-@Input:ÎŞ
-@Output:ÎŞ
-@Return:ÎŞ
+@Description:rtcæ—¶é—´ç´¯åŠ ï¼Œè¿”å›æ—¶é—´
+@Input:æ— 
+@Output:æ— 
+@Return:æ— 
 *************************************************/ 
 static uint8_t CalendarInc(uint8_t *ucByte, uint8_t ucMin, uint8_t ucMax)
 {
@@ -317,27 +317,27 @@ static uint8_t CalendarInc(uint8_t *ucByte, uint8_t ucMin, uint8_t ucMax)
 }
 
 /************************************************* 
-@Description:¸ù¾İÌá¹©µÄÄê¡¢ÔÂ¼ÆËãµ±ÔÂ×îºóÒ»ÈÕ£¬Ö§³ÖÈòÄê,²¢ÇÒÖ»¿¼ÂÇ20xxÄê
-@Input:ÎŞ
-@Output:ÎŞ
-@Return:ÎŞ
+@Description:æ ¹æ®æä¾›çš„å¹´ã€æœˆè®¡ç®—å½“æœˆæœ€åä¸€æ—¥ï¼Œæ”¯æŒé—°å¹´,å¹¶ä¸”åªè€ƒè™‘20xxå¹´
+@Input:æ— 
+@Output:æ— 
+@Return:æ— 
 *************************************************/ 
 static uint8_t DateMaxCalc21Cn(uint8_t Yeah, uint8_t Month)
 {
 	uint8_t tmp1;
 	switch(Month)
 	{
-		case 1:case 3:case 5:case 7:case 8:case 10:case 12: //31Ìì
+		case 1:case 3:case 5:case 7:case 8:case 10:case 12: //31å¤©
 			tmp1 = 31;
 			break;
-		case 4:case 6:case 9:case 11://30Ìì
+		case 4:case 6:case 9:case 11://30å¤©
 			tmp1 = 30;
 			break;
 		case 2:
-			if(0 == (Yeah%4))//µ±Äê·İ²»ÊÇÕı°İÄêÊ±£¬Äê·İÄÜ±»4Õû³ıµÄÊÇÈòÄê£¬·ñÔòÊÇÆ½Äê
-				tmp1 = 29;//ÈòÄê29Ìì
+			if(0 == (Yeah%4))//å½“å¹´ä»½ä¸æ˜¯æ­£æ‹œå¹´æ—¶ï¼Œå¹´ä»½èƒ½è¢«4æ•´é™¤çš„æ˜¯é—°å¹´ï¼Œå¦åˆ™æ˜¯å¹³å¹´
+				tmp1 = 29;//é—°å¹´29å¤©
 			else
-				tmp1 = 28;//Æ½Äê28Ìì
+				tmp1 = 28;//å¹³å¹´28å¤©
 		default:
 			break;
 	}			
@@ -347,10 +347,10 @@ static uint8_t DateMaxCalc21Cn(uint8_t Yeah, uint8_t Month)
 
 
 /************************************************* 
-@Description:Ê±¼ä¸üĞÂ
-@Input:ÎŞ
-@Output:ÎŞ
-@Return:ÎŞ
+@Description:æ—¶é—´æ›´æ–°
+@Input:æ— 
+@Output:æ— 
+@Return:æ— 
 *************************************************/ 
 void Calendar21Century(rtc_typedef* pRTCtime)	//20xx
 {
@@ -360,7 +360,7 @@ void Calendar21Century(rtc_typedef* pRTCtime)	//20xx
 		{
 			if(CalendarInc(&pRTCtime->hour,0,23))		//hour
 			{
-				CalendarInc(&pRTCtime->week,1,7);//ĞÇÆÚ
+				CalendarInc(&pRTCtime->week,1,7);//æ˜ŸæœŸ
 				if(CalendarInc(&pRTCtime->day,1,DateMaxCalc21Cn(pRTCtime->year, pRTCtime->month)))	//date
 				{
 					if(CalendarInc(&pRTCtime->month,1,12))		//month
@@ -373,10 +373,10 @@ void Calendar21Century(rtc_typedef* pRTCtime)	//20xx
 	}								
 }
 /************************************************* 
-@Description:rtcÊ±¼äÉèÖÃ
-@Input:ÎŞ
-@Output:ÎŞ
-@Return:ÎŞ
+@Description:rtcæ—¶é—´è®¾ç½®
+@Input:æ— 
+@Output:æ— 
+@Return:æ— 
 *************************************************/ 
 void RTC_Time_Set(uint32_t RTCtime)
 {
@@ -391,12 +391,12 @@ void RTC_Time_Set(uint32_t RTCtime)
 
 
 /************************************************* 
-@Description:rtcÖĞ¶Ïº¯Êı
-@Input:ÎŞ
-@Output:ÎŞ
-@Return:ÎŞ
+@Description:rtcä¸­æ–­å‡½æ•°
+@Input:æ— 
+@Output:æ— 
+@Return:æ— 
 *************************************************/ 
-
+extern OLED_Typedef OLED1;//oled
 void RTC0_IRQHandler(void)
 {
 	if(NRF_RTC0->EVENTS_COMPARE[0])

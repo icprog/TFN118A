@@ -143,6 +143,8 @@ void MSG_Write(uint8_t idx,u8* buff)
 	nrf_nvmc_page_erase(msg_addr);
 	nrf_nvmc_write_bytes(msg_addr,buff,(buff[MSG_LEN_IDX]+MSG_FLASH_HEAD_LEN));
 	MSG_Store.MSG_IDX = (MSG_Store.MSG_IDX + 1)%MSG_FLASH_NUM;//索引号+1
+	if(MSG_Store.MSG_Num < MSG_FLASH_NUM)
+		MSG_Store.MSG_Num++;
 	msg_addr = MSG_Store.NEW_MSG_ROM;
 	nrf_nvmc_page_erase(msg_addr);
 	nrf_nvmc_write_byte(msg_addr,MSG_Store.MSG_IDX);//写入最新索引号
@@ -228,6 +230,7 @@ u16 Message_Deal(uint8_t *p_mpacket)
 			MSG_Store.MSG_BUFF[MSG_SEQ_IDX] = MSG_Store.MSG_Seq;//存储包序号
 			MSG_Store.MSG_BUFF[MSG_LEN_IDX] = MSG_Store.MSG_BUFF_IDX - MSG_FLASH_HEAD_LEN;//MSG_BUFF_IDX-2
 			MSG_Write(MSG_Store.MSG_IDX,MSG_Store.MSG_BUFF);
+
 			cmd_state = MSG_START_END_VALUE;
 			debug_printf("\n\r接收完成");
 			MSG_Packet_ReSet();//包接收完成置位
@@ -252,7 +255,8 @@ void Tag_Message_Get(void)
 	uint8_t msg_idx;//消息索引号
 	//获取最新消息索引号
 	msg_idx = MSG_Store.MSG_IDX;
-	for(i=0;i<MSG_FLASH_NUM;i++)
+	MSG_Store.Tag_Msg_Num = 0;
+	for(i=0;i<MSG_Store.MSG_Num;i++)
 	{
 		addr = *MSG_Store.MSG_ADDR[msg_idx];//获取地址
 		msg_len = *(uint8_t *)(addr+MSG_LEN_IDX);	

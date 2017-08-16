@@ -32,19 +32,32 @@ void function_test(void)
 
 	OLED_Init();//OLED测试
 	FilleScreen(COLOR_WHITE);//点亮全屏
+	OLED_Refresh_Gram();
 	nrf_delay_ms(1000);
-//	OLED_Show_ChineseS(8,0,Motor_Buf,4);
-//	OLED_Refresh_Gram();
-//	Motor_Run();//电机测试
-//	nrf_delay_ms(500);
-//	Motor_Stop();
-//	nrf_delay_ms(1000);
-//	OLED_Show_ChineseS(8,0,GSensor_Buf,5);
-//	OLED_Refresh_Gram();
-//	if(!lis3dhInit())//加速度测试
-//	{
-//		OLED_Show_ChineseS(8,0,GSensorWrong_Buf,5);
-//	}
+	
+	FilleScreen(COLOR_BLACK);//清屏
+	OLED_Refresh_Gram();
+	OLED_Show_ChineseS(0,8,Motor_Buf,4);
+	OLED_Refresh_Gram();
+	Motor_Run();//电机测试
+	nrf_delay_ms(500);
+	Motor_Stop();
+	nrf_delay_ms(2000);
+	
+	FilleScreen(COLOR_BLACK);//清屏
+	OLED_Show_ChineseS(0,8,GSensor_Buf,5);
+	OLED_Refresh_Gram();
+	nrf_delay_ms(1000);
+	if(!lis3dhInit())//加速度测试
+	{
+		FilleScreen(COLOR_BLACK);//清屏
+		OLED_Show_ChineseS(0,8,GSensorWrong_Buf,5);
+		OLED_Refresh_Gram();
+		nrf_delay_ms(3000);
+	}
+	FilleScreen(COLOR_BLACK);//清屏
+	OLED_Refresh_Gram();
+	nrf_delay_ms(2000);
 
 }
 #endif

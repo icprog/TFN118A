@@ -134,7 +134,7 @@ void FilleScreen(uint8_t color)
 			OLED_GRAM[n][i]=color;  
 	}
 		
-	OLED_Refresh_Gram();//更新显示
+//	OLED_Refresh_Gram();//更新显示
 }
 
 /************************************************* 
@@ -562,9 +562,9 @@ byte    16	17		31
 		~	~	~~~ ~
 		b7	b7	~~~	b7
 *************************************************/ 
+uint8_t DZ_Data[32];
 void OLED_Show_Chinese(u8 x,u8 y,unsigned int code,u8 mode)
 {
-	uint8_t DZ_Data[32];
 	uint8_t x0,y0;
 	uint8_t t,t1;
 	uint8_t temp;//临时缓存
@@ -662,13 +662,13 @@ void OLED_SHOW_MSG(u8 x,u8 y,uint8_t *pBuff)
 	x0 = x;
 	y0 = y;
 	pBuff = &pBuff[2];
-	for(i=0;i<Msg_Len;i++)
+	for(i=0;i<Msg_Len;)
 	{
+		FilleScreen(COLOR_BLACK);
 		if(pBuff[i] < ASCII_RANGE)//ASCII
 		{
 			OLED_ShowChar(x,y,pBuff[i],ascii_1608,1);
 			i++;//下个字
-			if(i > Msg_Len) break;
 		}
 		else //gb18030
 		{
@@ -676,8 +676,9 @@ void OLED_SHOW_MSG(u8 x,u8 y,uint8_t *pBuff)
 			code = (pBuff[i]<<8|pBuff[i+1]);
 			OLED_Show_Chinese(x,y,code,1);
 			i=i+2;
-			if(i > Msg_Len) break;
 		}
+		if(i > Msg_Len) 
+			break;
 		x = x + Chinese_Width;//下个字起始坐标
 		//滚动效果
 		if(x == 16)//记录每页第二个字
@@ -723,66 +724,72 @@ void OLED_IO_Init(void)
 @Input:
 @Output:无
 @Return:无
-*************************************************/ 			    
+*************************************************/ 	
+uint8_t OLED_Power_Flag = 0;//OLED是否上电
 void OLED_Init(void)
 { 	 				 	 					    
 	//内部Charge流程 vdd上电->VBAT上电->RES拉低3us->RES拉高3us->寄存器配置
-#if OLED_MODE==1
-	OLED_IIC_Init();
-	OLED_IO_Init();
-	
-	OLED_VDD_BAT_ON();//VDD、VBAT上电					
-	nrf_delay_us(10);
-	OLED_RES_LOW();	//复位
-	nrf_delay_us(10);//>3us
-	OLED_RES_HIGH();
-	nrf_delay_us(10);//>3us
-#else					
-	
-#endif	
-	OLED_WR_Byte(0xAE,OLED_CMD);     	//Set Display Off 
-	OLED_WR_Byte(0xd5,OLED_CMD);     	//display divide ratio/osc. freq. mode	
-	OLED_WR_Byte(0xc1,OLED_CMD);     	// 115HZ
+	if(0 == OLED_Power_Flag)
+	{
+	#if OLED_MODE==1
+		OLED_IIC_Init();
+		OLED_IO_Init();
+		
+		OLED_VDD_BAT_ON();//VDD、VBAT上电					
+		nrf_delay_us(10);
+		OLED_RES_LOW();	//复位
+		nrf_delay_us(10);//>3us
+		OLED_RES_HIGH();
+		nrf_delay_us(10);//>3us
+	#else					
+		
+	#endif	
+		OLED_WR_Byte(0xAE,OLED_CMD);     	//Set Display Off 
+		OLED_WR_Byte(0xd5,OLED_CMD);     	//display divide ratio/osc. freq. mode	
+		OLED_WR_Byte(0xc1,OLED_CMD);     	// 115HZ
 
-	OLED_WR_Byte(0xA8,OLED_CMD);     	//multiplex ration mode: 
-	OLED_WR_Byte(0x1F,OLED_CMD);
+		OLED_WR_Byte(0xA8,OLED_CMD);     	//multiplex ration mode: 
+		OLED_WR_Byte(0x1F,OLED_CMD);
 
-	OLED_WR_Byte(0xAD,OLED_CMD);    	//External or Internal VCOMH Selection	/External or internal IREF Selection
-	OLED_WR_Byte(0x00,OLED_CMD);		// Internal VCOMH/ External	IREF
+		OLED_WR_Byte(0xAD,OLED_CMD);    	//External or Internal VCOMH Selection	/External or internal IREF Selection
+		OLED_WR_Byte(0x00,OLED_CMD);		// Internal VCOMH/ External	IREF
 
-	OLED_WR_Byte(0x20,OLED_CMD);		//Set Memory Addressing Mode
-	OLED_WR_Byte(0x02,OLED_CMD);		//Page Addressing Mode
+		OLED_WR_Byte(0x20,OLED_CMD);		//Set Memory Addressing Mode
+		OLED_WR_Byte(0x02,OLED_CMD);		//Page Addressing Mode
 
-	OLED_WR_Byte(0xD3,OLED_CMD);		//Set Display Offset   
-	OLED_WR_Byte(0x00,OLED_CMD);
+		OLED_WR_Byte(0xD3,OLED_CMD);		//Set Display Offset   
+		OLED_WR_Byte(0x00,OLED_CMD);
 
-	OLED_WR_Byte(0x40,OLED_CMD);     	//Set Display Start Line 
+		OLED_WR_Byte(0x40,OLED_CMD);     	//Set Display Start Line 
 
-	OLED_WR_Byte(0x8D,OLED_CMD);     	//DC-DC Control Mode Set 
-	OLED_WR_Byte(0x14,OLED_CMD);     	//DC-DC ON/OFF Mode Set 
+		OLED_WR_Byte(0x8D,OLED_CMD);     	//DC-DC Control Mode Set 
+		OLED_WR_Byte(0x14,OLED_CMD);     	//DC-DC ON/OFF Mode Set 
 
-	OLED_WR_Byte(0xA0,OLED_CMD);     	//Segment Remap	 
+		OLED_WR_Byte(0xA0,OLED_CMD);     	//Segment Remap	 
 
-	OLED_WR_Byte(0xC8,OLED_CMD);     	//Sst COM Output Scan Direction	
+		OLED_WR_Byte(0xC8,OLED_CMD);     	//Sst COM Output Scan Direction	
 
-	OLED_WR_Byte(0xDA,OLED_CMD);    	//seg pads hardware: alternative	
-	OLED_WR_Byte(0x12,OLED_CMD);
+		OLED_WR_Byte(0xDA,OLED_CMD);    	//seg pads hardware: alternative	
+		OLED_WR_Byte(0x12,OLED_CMD);
 
-	OLED_WR_Byte(0x81,OLED_CMD);     	//contrast control 
-	OLED_WR_Byte(0x53,OLED_CMD);		
+		OLED_WR_Byte(0x81,OLED_CMD);     	//contrast control 
+		OLED_WR_Byte(0x53,OLED_CMD);		
 
-	OLED_WR_Byte(0xD9,OLED_CMD);	    //set pre-charge period	  
-	OLED_WR_Byte(0x22,OLED_CMD);
+		OLED_WR_Byte(0xD9,OLED_CMD);	    //set pre-charge period	  
+		OLED_WR_Byte(0x22,OLED_CMD);
 
-	OLED_WR_Byte(0xDB,OLED_CMD);     	//VCOM deselect level mode 
-	OLED_WR_Byte(0x00,OLED_CMD);	    
+		OLED_WR_Byte(0xDB,OLED_CMD);     	//VCOM deselect level mode 
+		OLED_WR_Byte(0x00,OLED_CMD);	    
 
-	OLED_WR_Byte(0xA4,OLED_CMD);     	//Set Entire Display On/Off	
+		OLED_WR_Byte(0xA4,OLED_CMD);     	//Set Entire Display On/Off	
 
-	OLED_WR_Byte(0xA6,OLED_CMD);     	//Set Normal Display 
-	OLED_WR_Byte(0xAF,OLED_CMD);     	//Set Display On 	
-	nrf_delay_ms(100);
-
+		OLED_WR_Byte(0xA6,OLED_CMD);     	//Set Normal Display 
+		OLED_WR_Byte(0xAF,OLED_CMD);     	//Set Display On 	
+		nrf_delay_ms(100);
+		GT24L24A2Y_Spi_Init();
+		OLED_Power_Flag = 1;
+	}
+//	GT24L24A2Y_Test();
 	
 }  
 
@@ -818,10 +825,10 @@ void OLED_Test(void)
 //	nrf_delay_ms(4);
 }
 
-void OLED_SHOW(void)
+void OLED_SHOW_Clock(void)
 {
 	//电量显示
-	OLED_Fill(0,0,16,31,0);//区域清空
+	FilleScreen(COLOR_BLACK);//清屏
 	if(battery.CHR_Flag)
 	{
 		OLED_ShowBat(5,1,1,battery);//电量
@@ -842,13 +849,17 @@ void OLED_SHOW(void)
 *************************************************/ 
 void OLED_DeInit(void)
 {
-	FilleScreen(COLOR_BLACK);
-	OLED_WR_Byte(0xAE,OLED_CMD);     	//Set Display Off 
-	OLED_WR_Byte(0x8D,OLED_CMD);     	//DC-DC Control Mode Set 
-	OLED_WR_Byte(0x10,OLED_CMD);     	//DC-DC ON/OFF Mode Set 
-	
-	nrf_delay_ms(100);
-	OLED_VDD_BAT_OFF();
+	if(1 == OLED_Power_Flag)
+	{
+		FilleScreen(COLOR_BLACK);
+		OLED_WR_Byte(0xAE,OLED_CMD);     	//Set Display Off 
+		OLED_WR_Byte(0x8D,OLED_CMD);     	//DC-DC Control Mode Set 
+		OLED_WR_Byte(0x10,OLED_CMD);     	//DC-DC ON/OFF Mode Set 
+		
+		nrf_delay_ms(100);
+		OLED_VDD_BAT_OFF();
+		OLED_Power_Flag = 0;
+	}
 }
 
 

@@ -1,5 +1,6 @@
 #include "app_key.h"
 #include "app_init.h"
+#include "app_msg.h"
 /*******************************************************************************
 ** 版权:		
 ** 文件名: 		app_key.c
@@ -12,7 +13,8 @@
 ** 修改日志：	
 ** 版权所有   
 *******************************************************************************/
-
+extern OLED_Typedef OLED1;//oled
+extern MSG_Store_Typedef MSG_Store;//消息定义消息序列号0~7
 uint16_t key_tim;//计数值，间隔40ms
 uint16_t key_double_tim;//记录单机后，按键抬起时间
 uint16_t key_up_tim;//按键抬起计时
@@ -241,7 +243,7 @@ void Get_Key_Value(void)
 				if(key_tim > Key_Alarm_Delay )//长按
 				{
 					k1.Value = long_press;
-					key_state = 2; 
+					key_state = 0; 
 				}
 			}
 			break;
@@ -271,6 +273,7 @@ void Key_Deal(void)
 @Return:返回键值
 *************************************************/ 
 uint8_t key_cnt;
+extern void OLED_SHOW(void);
 void Key_Func(void)
 {
 	if(0 == key_state)//抬起
@@ -281,6 +284,34 @@ void Key_Func(void)
 	switch(k1.Value)
 	{
 		case short_press:
+			if(empty_page == OLED1.OLED_PowerOn)
+			{
+				OLED1.OLED_PowerOn = clock_page;
+				OLED1.key_short_cnt = 0;
+			}
+			else
+			{
+				Tag_Message_Get();//获取消息
+				if(OLED1.key_short_cnt < MSG_Store.Tag_Msg_Num)
+				{
+					switch(OLED1.OLED_PowerOn)
+					{
+						case clock_page:OLED1.OLED_PowerOn = msg1_page;break;
+						case msg1_page:OLED1.OLED_PowerOn = msg2_page;break;
+						case msg2_page:OLED1.OLED_PowerOn = msg3_page;break;
+						default : OLED1.OLED_PowerOn = clock_page;break;
+					}	
+					OLED1.key_short_cnt++;
+				}
+				else
+				{
+					OLED1.OLED_PowerOn = clock_page;
+					OLED1.key_short_cnt=0;//短按次数
+				}
+				
+			}
+			OLED1.OLED_TimeCnt=0;
+			OLED_SHOW();
 			key_cnt = 1;
 			k1.Value = no_press;
 			break;
