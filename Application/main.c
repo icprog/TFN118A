@@ -6,6 +6,7 @@
 #include "rtc.h"
 #include "app_radio.h"
 #include "app_msg.h"
+
 extern uint8_t rtc_flag;//定时，射频发送
 extern MSG_Store_Typedef MSG_Store;//消息定义消息序列号0~7
 
@@ -46,6 +47,7 @@ void Bat_Detect(void)
 		}
 	}	
 }
+
 /************************************************* 
 @Description:OLED显示
 @Input:无
@@ -58,13 +60,30 @@ void OLED_SHOW(void)
 	{
 		case empty_page:OLED_DeInit();break;
 		case clock_page:OLED_Init();OLED_SHOW_Clock();break;
-		case msg1_page:OLED_Init();FilleScreen(COLOR_BLACK);OLED_ShowChar(0,0,'A',16,1);OLED_Refresh_Gram();break;
-		case msg2_page:OLED_Init();FilleScreen(COLOR_BLACK);OLED_ShowChar(0,0,'B',16,1);OLED_Refresh_Gram();break;
-		case msg3_page:OLED_Init();FilleScreen(COLOR_BLACK);OLED_ShowChar(0,0,'C',16,1);OLED_Refresh_Gram();break;
-//		case msg1_page:OLED_Init();OLED_SHOW_MSG(0,16,&MSG_Store.Tag_Msg_Buf[0][0]);break;
-//		case msg2_page:OLED_Init();OLED_SHOW_MSG(0,16,&MSG_Store.Tag_Msg_Buf[1][0]);break;
-//		case msg3_page:OLED_Init();OLED_SHOW_MSG(0,16,&MSG_Store.Tag_Msg_Buf[2][0]);break;
+//		case msg1_page:OLED_Init();FilleScreen(COLOR_BLACK);OLED_ShowChar(0,0,'A',16,1);OLED_Refresh_Gram();break;
+//		case msg2_page:OLED_Init();FilleScreen(COLOR_BLACK);OLED_ShowChar(0,0,'B',16,1);OLED_Refresh_Gram();break;
+//		case msg3_page:OLED_Init();FilleScreen(COLOR_BLACK);OLED_ShowChar(0,0,'C',16,1);OLED_Refresh_Gram();break;
+		case msg1_page:OLED_Init();OLED_SHOW_MSG(0,16,&MSG_Store.Tag_Msg_Buf[0][0]);break;
+		case msg2_page:OLED_Init();OLED_SHOW_MSG(0,16,&MSG_Store.Tag_Msg_Buf[1][0]);break;
+		case msg3_page:OLED_Init();OLED_SHOW_MSG(0,16,&MSG_Store.Tag_Msg_Buf[2][0]);break;
 	}
+}
+
+
+/************************************************* 
+@Description:标签-有消息来oled显示
+@Input:无
+@Output:无
+@Return:无
+*************************************************/ 
+void TAG_Msg_OLED_Show(void)
+{
+	Motor_Work();
+	Tag_Message_Get();//获取消息
+	OLED_Init();
+	OLED_SHOW_MSG(0,16,&MSG_Store.Tag_Msg_Buf[0][0]);
+	OLED1.OLED_PowerOn = msg1_page;
+	OLED1.OLED_TimeCnt = 0;
 }
 #endif
 
@@ -83,16 +102,14 @@ int main(void)
 	function_test();
 	#endif
 	OLED_Init();
-	OLED_SHOW_Clock();
 	//初始电量采集
 	nrf_delay_ms(1000);
-	battery.bat_capacity = battery_check_read();
-	RTC_Time_Set(0);
-	
+	battery.bat_capacity = battery_check_read();//读取电量
+	RTC_Time_Set(0);//时间设置
+	OLED_SHOW_Clock();//显示时间
 	while(1)
 	{
 		Key_Deal();//按键
-
 //		OLED_SHOW();//放到按键中
 		Bat_Detect();//电量采集
 		//1s定时

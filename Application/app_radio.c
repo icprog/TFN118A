@@ -6,49 +6,29 @@
 #include "app_test.h"
 //需要修改的参数
 #define win_interval 3//标签开接收窗口间隔
-//携带命令
-typedef enum
-{
-	WithoutCmd = 0,
-	WithCmd
-}CMD_Typedef;
-//携带接收窗
-typedef enum
-{
-	WithoutWin = 0,
-	WithWin
-}WIN_Typedef;
+TAG_Sned_Typedef TAG_Sned={0xff,0};//发送次数
 
-//是否等待发送完成
-typedef enum
-{
-	SendNoWait=0,
-	SendWait=1
-}Send_Wait_Typedef;
 
-extern uint8_t packet[PACKET_PAYLOAD_MAXSIZE];
-extern uint8_t DeviceID[4];
-extern uint8_t para_record[PARA_RECORD_LEN];
-
+extern uint8_t packet[PACKET_PAYLOAD_MAXSIZE];//射频数据
+extern uint8_t DeviceID[4];//设备ID
+extern uint8_t para_record[PARA_RECORD_LEN];//参数
 extern uint8_t ActiveMode;//周期发送秒标志
+
 //射频接收发送完成
-uint8_t radio_rcvok = 0;
-uint8_t radio_sndok = 0;
+volatile uint8_t radio_rcvok = 0;
+volatile uint8_t radio_sndok = 0;
 Payload_Typedef cmd_packet;//命令射频处理
 extern uint8_t radio_status;//射频运行状态
-uint8_t radio_run_channel;//射频运行通道 
+volatile uint8_t radio_run_channel;//射频运行通道 
 
-
-//uint8_t State_WithWin;
-uint8_t State_Mode;//模式
 //标签状态字
-TAG_STATE_Typedef TAG_STATE = {0,0,0,1};//标签
+volatile TAG_STATE_Typedef TAG_STATE = {0,0,0,1};//标签，时间更新
 const static uint8_t State_WithSensor = 1;//1:传感标签 0：非传感标签
 //传感数据
 extern MSG_Store_Typedef MSG_Store;//消息定义消息序列号0~7
 extern Message_Typedef Msg_Packet;
-
-
+//消息
+extern void TAG_Msg_OLED_Show(void);
 #ifdef LOG_ON
 #define RADIO_RX_OT_CONST 	10000000
 #define RADIO_MESSAGE_OT    20000000
@@ -56,31 +36,34 @@ extern Message_Typedef Msg_Packet;
 #define RADIO_RX_OT_CONST 	900
 #define RADIO_MESSAGE_OT    3000
 #endif
-uint32_t RADIO_RX_OT = RADIO_RX_OT_CONST;
+//射频工作模式
+extern Radio_Work_Mode_Typedef Radio_Work_Mode;//用来接收消息
+uint32_t RADIO_RX_OT = RADIO_RX_OT_CONST;//开接收窗口时间
+
 void radio_pwr(uint8_t txpower);
 static void Radio_Period_Send(uint8_t cmdflag,uint8_t winflag,uint8_t wait_send_finish);
 
 //文件操作
 File_Typedef f_para;//文件操作命令数据缓存
-//射频工作模式
-extern Radio_Work_Mode_Typedef Radio_Work_Mode;
 
 void Radio_Cmd_Deal(void);
+//边界管理器
+extern u32 baseStationID;//边界管理器ID
 /*
-Description:射频启动
-Input:state :
-Output:无
-Return:无
+@Description:射频启动
+@Input:state :
+@Output:无
+@Return:无
 */
 static void radio_on(void)
 {
 	xosc_hfclk_start();//外部晶振起振
 }
 /*
-Description:射频关闭
-Input:state :
-Output:无
-Return:无
+@Description:射频关闭
+@Input:state :
+@Output:无
+@Return:无
 */
 static void radio_off(void)
 {
@@ -89,10 +72,10 @@ static void radio_off(void)
 }
 
 /*
-Description:射频选择
-Input:state :
-Output:无
-Return:无
+@Description:射频选择
+@Input:state :
+@Output:无
+@Return:无
 */
 static void radio_select(uint8_t ch,uint8_t dir)
 {
@@ -156,10 +139,10 @@ void Message_Radio_Rx(uint8_t times)
 	}
 }
 /*
-Description:射频周期发送
-Input:state :
-Output:无
-Return:无
+@Description:射频周期发送
+@Input:state :
+@Output:无
+@Return:无
 */
 void Raio_Deal(void)
 {
@@ -206,6 +189,7 @@ void Raio_Deal(void)
 	radio_off();
 }
 
+
 /***********************************************************
 @Description:周期发送射频信息,并等待发送完成
 @Input：	cmdflag - 命令返回 1：返回命令 0：常规发送
@@ -229,12 +213,27 @@ static void Radio_Period_Send(uint8_t cmdflag,uint8_t winflag,uint8_t wait_send_
 		packet[RADIO_LENGTH_IDX] = 0; //payload长度，后续更新
 		my_memcpy(packet+TAG_ID_IDX,DeviceID,4);//2~5标签ID
 		TAG_STATE.State_Mode = ActiveMode;//模式
-		packet[TAG_STATE_IDX] |= TAG_STATE.State_LP_Alarm << TAG_LOWPWR_Pos;//低电指示
-		packet[TAG_STATE_IDX] |= TAG_STATE.State_Key_Alram << TAG_KEY_Pos;//按键指示
-		packet[TAG_STATE_IDX] |= State_WithSensor << TAG_WITHSENSOR_Pos;//传感指示
-		packet[TAG_STATE_IDX] |= winflag << TAG_WITHWIN_Pos;//接收窗指示
-		packet[TAG_STATE_IDX] |= TAG_STATE.State_Mode << TAG_MODE_Pos;//模式指示
-		packet[TAG_STATE_IDX] |= TAG_STATE.State_Update_Time << TAG_TIMEUPDATE_Pos;//模式指示
+		//边界管理器
+		if(TAG_Sned.BaseID_Cnt > BaseID_Const)
+		{
+			baseStationID |= 0xffff;//清除边界管理器ID
+		}
+		//报警次数
+		if(TAG_STATE.State_Key_Alram&&TAG_Sned.KeyAlram_Cnt < Key_Alram_Const)
+		{
+			TAG_Sned.KeyAlram_Cnt++;
+		}
+		else
+		{
+			TAG_Sned.KeyAlram_Cnt = 0;
+			TAG_STATE.State_Key_Alram = 0;
+		}
+		packet[TAG_STATE_IDX] |= ((TAG_STATE.State_LP_Alarm << TAG_LOWPWR_Pos)&TAG_LOWPWR_Msk);//低电指示
+		packet[TAG_STATE_IDX] |= ((TAG_STATE.State_Key_Alram << TAG_KEY_Pos)&TAG_KEY_Msk);//按键指示
+		packet[TAG_STATE_IDX] |= ((State_WithSensor << TAG_WITHSENSOR_Pos)&TAG_WITHSENSOR_Msk);//传感指示
+		packet[TAG_STATE_IDX] |= ((winflag << TAG_WITHWIN_Pos)&TAG_WIHTWIN_Msk);//接收窗指示
+		packet[TAG_STATE_IDX] |= ((TAG_STATE.State_Mode << TAG_MODE_Pos)&TAG_MODE_Msk);//模式指示
+		packet[TAG_STATE_IDX] |= ((TAG_STATE.State_Update_Time << TAG_TIMEUPDATE_Pos)&TAG_TIMEUPDATE_Msk);//时间更新指示1：需要更新时间
 		packet[TAG_VERSION_IDX] |= TAG_HDVER_NUM << TAG_HDVERSION_POS;//硬件版本号
 		packet[TAG_VERSION_IDX] |= TAG_SFVER_NUM << TAG_SFVERSION_POS;//软件版本号
 		packet[TAG_STYPE_IDX] = TAG_SENSORTYPE_SchoolWatch;//标签类型
@@ -242,6 +241,8 @@ static void Radio_Period_Send(uint8_t cmdflag,uint8_t winflag,uint8_t wait_send_
 		cmd_packet.length = TAG_SDATA_IDX;//PAYLOAD长度 
 		packet[RADIO_LENGTH_IDX] = cmd_packet.length ;
 		packet[TAG_SDATA_IDX+1] = Get_Xor(packet,cmd_packet.length+1);//S0+max_length+PAYLOAD
+
+
 	}
 	if(cmdflag)
 	{
@@ -265,10 +266,10 @@ static void Radio_Period_Send(uint8_t cmdflag,uint8_t winflag,uint8_t wait_send_
 }
 
 /************************************************* 
-Description:射频功率选择
-Input:输入发射功率
-Output:无
-Return:无
+@Description:射频功率选择
+@Input:输入发射功率
+@Output:无
+@Return:无
 *************************************************/  
 void radio_pwr(uint8_t txpower)
 {
@@ -305,10 +306,10 @@ void radio_pwr(uint8_t txpower)
 }
 
 /*
-Description:异或检查
-Input:src:原数组，长度
-Output:
-Return:无
+@Description:异或检查
+@Input:src:原数组，长度
+@Output:
+@Return:无
 */
 uint8_t Xor_Check(uint8_t *src,uint8_t size)
 {
@@ -327,10 +328,10 @@ uint8_t Xor_Check(uint8_t *src,uint8_t size)
 
 
 /*
-Description:射频命令处理，放在中断函数中
-Input:src:
-Output:
-Return:无
+@Description:射频命令处理，放在中断函数中
+@Input:src:
+@Output:
+@Return:无
 */
 void Radio_Cmd_Deal(void)
 {
@@ -418,7 +419,9 @@ void Radio_Cmd_Deal(void)
 									Radio_Work_Mode = Stand_Send;
 									debug_printf("\r\n消息接收完成");
 									Msg_Packet.MSG_FLAG = MSG_IDLE;
-									MSG_Store.New_Msg_Flag = 1;
+//									MSG_Store.New_Msg_Flag = 1;
+									TAG_Msg_OLED_Show();
+	
 								}								
 							}
 
@@ -427,6 +430,9 @@ void Radio_Cmd_Deal(void)
 						rtc_time = (cmd_packet.packet[CMD_IDX+1] << 24)|(cmd_packet.packet[CMD_IDX+2] <<16)
 						|(cmd_packet.packet[CMD_IDX+3]<<8)|(cmd_packet.packet[CMD_IDX+4]); 
 						RTC_Time_Set(rtc_time);
+					break;
+					case ALARM_CLEAR_CMD:
+						TAG_STATE.State_Key_Alram = 0;
 					break;
 					default:break;
 				}							
@@ -472,10 +478,10 @@ void Radio_TX_Deal(void)
 
 }
 /************************************************* 
-Description:RADIO中断处理程序
-Input:无
-Output:无
-Return:无
+@Description:RADIO中断处理程序
+@Input:无
+@Output:无
+@Return:无
 *************************************************/  
 uint8_t tx_cnt;
 void RADIO_IRQHandler(void)

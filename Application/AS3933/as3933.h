@@ -1,63 +1,48 @@
-/*
- *****************************************************************************
- * Copyright @ 2011 by austriamicrosystems AG                                *
- * All rights are reserved.                                                  *
- *                                                                           *
- * IMPORTANT - PLEASE READ CAREFULLY BEFORE COPYING, INSTALLING OR USING     *
- * THE SOFTWARE.                                                             *
- *                                                                           *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS       * 
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT         *
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS         *
- * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT  *
- * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,     *
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT          *
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,     *
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY     *
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT       *
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE     *
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.      *
- *****************************************************************************
- */
-/*
- *      PROJECT:   AS3940 ActiveTag firmware
- *      $Revision: $
- *      LANGUAGE:  ANSI C
- */
-
-/*! \file as3933.h
- *
- *  \author Wolfgang Reichart
- *
- *  \brief as3933 driver definition file
- *
- *  This is the definition file for the as3933 driver.
- *  
- */
-
-/*!
- * \defgroup xxxx as3933 driver module
- * some words to describe the module
- */
-
+/*******************************************************************************
+** 版权:		
+** 文件名: 		as3933.h
+** 版本：  		1.0
+** 工作环境: 	MDK-ARM 5.23
+** 作者: 		cc
+** 生成日期: 	2017-08-17
+** 功能:		  
+** 相关文件:	as3933.h
+** 修改日志：	
+** 版权所有   
+*******************************************************************************/
 #ifndef AS3933_H
 #define AS3933_H
 
-/*
-******************************************************************************
-* INCLUDES
-******************************************************************************
-*/
+
+/*------------AS3933------------*/
+#define AS3933_CS_PIN_NUM 15     //CS OUT
+#define AS3933_SCLK_PIN_NUM 14    //SCL OUT
+#define AS3933_SDI_PIN_NUM 13    //SDI-MOSI OUT
+#define AS3933_SDO_PIN_NUM 12    //SDO-MISO in/cs低，处于三态
+#define AS3933_DAT_PIN_NUM 11    //DAT IN
+#define AS3933_CLDAT_PIN_NUM 10  //CL_DAT 
+#define AS3933_WAKE_PIN_NUM 3
+
+#define AS3933_SDI_Set (NRF_GPIO->OUTSET=0x01UL<<AS3933_SDI_PIN_NUM)  //SDI=1
+#define AS3933_SDI_Clr (NRF_GPIO->OUTCLR=0x01UL<<AS3933_SDI_PIN_NUM)  //SDI=0
+#define AS3933_SCLK_Set (NRF_GPIO->OUTSET=0x01UL<<AS3933_SCLK_PIN_NUM)  //SCLK =1;	
+#define AS3933_SCLK_Clr (NRF_GPIO->OUTCLR=0x01UL<<AS3933_SCLK_PIN_NUM)  //SCLK =0;
+#define AS3933_CS_Set (NRF_GPIO->OUTSET=0x01UL<<AS3933_CS_PIN_NUM)  //CS =1;	
+#define AS3933_CS_Clr (NRF_GPIO->OUTCLR=0x01UL<<AS3933_CS_PIN_NUM)  //CS =0;
+#define Read_AS3933_SDO  ((NRF_GPIO->IN>>AS3933_SDO_PIN_NUM)&1UL)  //SDO
+#define Read_AS3933_DAT  ((NRF_GPIO->IN>>AS3933_DAT_PIN_NUM)&1UL)  //DAT
+#define Read_AS3933_WAKE ((NRF_GPIO->IN>>AS3933_WAKE_PIN_NUM)&1UL) 
+
 //#include "platform.h"
 #include "sys.h"
 
+#define OLED_PWR_Pin_Num  14 
+#define OLED_PWR_ON() do{NRF_GPIO->OUTSET = (1 << OLED_PWR_Pin_Num);}while(0)//OLED电源开启
+#define OLED_PWR_OFF() do{NRF_GPIO->OUTCLR = (1 << OLED_PWR_Pin_Num);}while(0)//OLED电源关闭
+#define OLED_RES_Pin_Num  8
+#define OLED_RES_LOW()	do{NRF_GPIO->OUTCLR = (1 << OLED_RES_Pin_Num);}while(0) //复位
+#define OLED_RES_HIGH()	do{NRF_GPIO->OUTSET = (1 << OLED_RES_Pin_Num);}while(0)
 
-/*
-******************************************************************************
-* DEFINES
-
-******************************************************************************
-*/
 
 /* AS3933 Internal Register Address  (Please refer to AS3933 Specifications) */
 #define AS3933_REG_R0				0x00		  
@@ -197,29 +182,13 @@ typedef struct
 extern s8 as3933Initialize (void);
 extern s8 as3933Deinitialize (void);
 extern s8 as3933Reinitialize (void);
-//extern u8 as3933WriteRegister (u8 address, u8 value);
-//extern u8 as3933WriteMultiRegister (u8 startAddress, u8 *values, u8 count);
-//extern u8 as3933ReadRegister (u8 address, u8 *value);
-//extern u8 as3933ReadMultiRegister (u8 startAddress, u8 *values, u8 count);
-//extern u8 as3933ModifyRegister (u8 address, u8 mask, u8 value);
-//extern u8 as3933SendCommand (as3933Commands_t command);
-extern s8 as3933CalibrateRCOViaSPI (void);
-extern s8 as3933CalibrateRCOViaLCO (void);
-//extern s8 as3933GetStrongestRssi (void);
+
 extern s8 as3933GetStrongestRssi(u8 *rssiX,u8 *rssiY,u8 *rssiZ);
 
 extern s8 as3933DebugRegs (void);
 void as3933_Init(void);
-/*!
- * capacitor... which bank should be tuned (0... channel 1, 1... channel 2, 2... channel 3)
- * capacity... returns the value of R17, R18 or R19 depending on value of capacitor
- *             the used value for the tuned antenna
- * returns if tuning was ok, or if we were not able to tune the antenna
- */
-extern s8 as3933TuneCapacitors (u8 capacitor, u8 *capacity);
-extern s8 measureResonanceFrequency (u8 channel, u16 *resonanceFrequency);
-extern s8 as3933AntennaTuning (void);
+void as3933_TimeOut(void);
 
-extern s8 as3933SampleData (u32 * sampleData);
+void as3933_wakeupIsr(void);
 
 #endif /* AS3933_H */

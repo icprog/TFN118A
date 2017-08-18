@@ -12,7 +12,7 @@ u8 SPI_RW(uint8_t byte)//SPI FLASH 写数据
 			else AS3933_SDI_Clr;//SDI=0;
 			byte=(byte<<1);	                // shift next bit to MSB   
 			AS3933_SCLK_Set;//SCLK =1;		
-			if(AS3933_SDO) byte|=1;//SDO
+			if(Read_AS3933_SDO) byte|=1;//SDO
 			else byte&=~0x01;
 			AS3933_SCLK_Clr;//SCLK =0;
 		}

@@ -61,6 +61,24 @@ void GT24L24A2Y_Spi_Init(void)
 	#endif
 }
 
+/************************************************* 
+@Description:字库spi初始化
+@Input:
+@Output:无
+@Return:无
+*************************************************/  
+void GT24L24A2Y_Spi_DeInit(void)
+{
+	#ifdef spi_hard
+
+	#else
+	NRF_GPIO->PIN_CNF[SPI_PSELSCK0] = IO_LP_State;
+	NRF_GPIO->PIN_CNF[SPI_PSELMOSI0] = IO_LP_State;
+	NRF_GPIO->PIN_CNF[SPI_PSELMISO0] = IO_LP_State;
+	NRF_GPIO->PIN_CNF[SPI_PSELSS0] = IO_LP_State;
+	#endif
+}
+
 #ifdef spi_hard
 /************************************************* 
 @Description:字库读点阵数据
@@ -84,9 +102,9 @@ static void GT24L24A2Y_Read_Bytes(u32 addr,u8 length,u8* prbuff)
 /****************************************************
 u8 r_dat_bat(u32 address,u8 byte_long,u8 *p_arr)
 @Description:
-DTAB_addr:表示字符点阵在芯片中的字节地址。
-DNum:      	是读点阵数据字节数。
-*p_arr   ： 是保存读出的点阵数据的数组。
+@DTAB_addr:表示字符点阵在芯片中的字节地址。
+@DNum:      	是读点阵数据字节数。
+@*p_arr   ： 是保存读出的点阵数据的数组。
 *****************************************************/
 void r_dat_bat(unsigned long TAB_addr,unsigned int Num,unsigned char *p_arr)
 {

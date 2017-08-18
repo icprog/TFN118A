@@ -1,9 +1,11 @@
 #ifndef __OLED_H
 #define __OLED_H			  	 
 
-#include "app_init.h"
-#include "nrf_delay.h"
+
 #include "stdlib.h"	 
+#include "nrf_delay.h"
+#include "app_init.h"
+
 
  
  
@@ -57,7 +59,7 @@ SSD1316 规格书上128*39Dot page 共4页
 	#define START_LOW_BIT 0x00	 //列低4位	
 //	#define STATE_MAX 0XFF
 //	#define STATE_MIN 0X00
-	#define MIN 0
+	#define OLED_MIN 0
 	/** color chart */
 	typedef enum
 	{

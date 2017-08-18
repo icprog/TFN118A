@@ -111,11 +111,15 @@ typedef struct
 
 //低压指示，1-低压
 #define TAG_LOWPWR_Pos									0
+#define TAG_LOWPWR_Msk									0x01
 #define TAG_KEY_Pos										1
+#define TAG_KEY_Msk										0x02
 #define TAG_WITHSENSOR_Pos								2
+#define TAG_WITHSENSOR_Msk								0x04
 #define TAG_WITHWIN_Pos									3
-#define TAG_MODE_Pos									4
 #define TAG_WIHTWIN_Msk									0x08
+#define TAG_MODE_Pos									4
+#define TAG_MODE_Msk									0x10
 #define TAG_TIMEUPDATE_Pos								5
 #define TAG_TIMEUPDATE_Msk 								0x20
 //版本信息 
@@ -327,6 +331,7 @@ typedef enum
 #define TIME_PARA_LEN							4
 #define TIME_SET_CMD							0XB1	//时间设置命令
 #define DEVICE_TEST_CMD 						0XB2  //整机测试命令
+#define ALARM_CLEAR_CMD							0XB3  //命令清除
 //函数
 void SystemParaInit(void);
 void UpdateRunPara(void);

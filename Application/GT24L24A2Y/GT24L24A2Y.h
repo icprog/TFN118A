@@ -16,4 +16,5 @@
 
 extern void GT24L24A2Y_Test(void);
 extern void GT24L24A2Y_Spi_Init(void);
+extern void GT24L24A2Y_Spi_DeInit(void);
 #endif

@@ -17,7 +17,11 @@
 
 #ifdef TFN118A
 
-	
+#define IO_LP_State 0x00000002	
+#define IO_OUTPUT  	0X00000003
+#define IO_INPUT  	0X00000000
+#define IO_INPUT_Pulldown  	0X00000004
+#define IO_INPUT_Pullup  	0X0000000C
 #define Motor_Pin_Num 13
 #define Motor_Run() do{NRF_GPIO->OUTSET = (1 << Motor_Pin_Num);}while(0)
 #define Motor_Stop() do{NRF_GPIO->OUTCLR = (1 << Motor_Pin_Num);}while(0)
@@ -65,7 +69,7 @@ typedef struct
 }bat_typedef;
 #endif
 //OLED显示
-#define OLED_PowerOn_Time 100  //oled亮4s
+#define OLED_PowerOn_Time 5  //oled亮4s
 typedef struct
 {
 	uint8_t OLED_PowerOn;//1:表示OLED亮
@@ -88,6 +92,12 @@ typedef enum
     APP_IRQ_PRIORITY_MID     = 2,
     APP_IRQ_PRIORITY_LOW     = 3
 } app_irq_priority_t;
+//GPIO中断事件发生
+typedef struct
+{
+	uint8_t Key_Int;//按键中断
+	uint8_t AS3933_Wake_Int;//3933中断
+}GPIO_IntSource_Typedef;
 
 
 #define RADIO_PRIORITY		APP_IRQ_PRIORITY_HIGHEST
@@ -105,11 +115,11 @@ extern void app_init(void);//硬件初始化
 void UART_Init(void);
 #ifdef TFN118A
 extern u8 battery_check_read(void);
-extern void motor_run_state(u8 state);//振动马达状态
 extern void battery_check_init(void);//电量采集初始化
 extern u8 battery_check_read(void);//电量采集
 void rtc1_init(void);//rtc1 用来按键消抖
 void rtc1_deinit(void);
+void Motor_Work(void);
 #endif
 
 #endif

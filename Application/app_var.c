@@ -48,21 +48,6 @@ uint8_t para_record[PARA_RECORD_LEN];
 uint16_t cmd_state;//命令执行情况
 Radio_Work_Mode_Typedef Radio_Work_Mode = Stand_Send;
 
-/*
-Description:返回最新记录ROM位置
-Input:state :
-Output:无
-Return:无
-*/
-//uint8_t GetValidPara(uint8_t type,)
-//{
-//	switch(type)
-//	{
-//		case TYPE_PARA: nrf_addr = 
-//	}
-//}
-
-
 
 /*
 Description:返回最新记录ROM位置

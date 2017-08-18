@@ -49,7 +49,31 @@ uint8_t Get_Xor(u8 *src,u16 size)
 	return temp;
 }
 
-
+/************************************************* 
+@Description:4个数去掉最大值，最小值，然后取平均。
+@Input:无
+@Output:无
+@Return:无
+*************************************************/ 
+uint16_t average(u16* data)
+{
+	u8 i = 0;
+	u16 max =*data;
+	u16 min =*data;
+	u16 sum = 0;
+	u16 average1 =0;
+	for(i=0;i<4;i++)
+	{
+		if(max>*(data+i)) max = max; else max = *(data+i);
+		if(min<*(data+i)) min = min; else min = *(data+i);
+		sum =sum+(*(data+i));
+	}
+	sum-=min;
+	sum-=max;
+	sum = sum>>2;
+	average1 = sum;
+	return average1;
+}
 /*---------------比较函数---------------------*/
 /*
 if Return value < 0 then it indicates str1 is less than str2.

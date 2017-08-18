@@ -4,7 +4,7 @@
 ** 版本：  		1.0
 ** 工作环境: 	MDK-ARM 5.23
 ** 作者: 		cc
-** 生成日期: 	2017-07-13
+** 生成日期: 	2017-08-17
 ** 功能:		  
 ** 相关文件:	as3933.h
 ** 修改日志：	
@@ -15,7 +15,8 @@
 
 #include "as3933_spi.h"
 #include "nrf_delay.h"
-
+#include "oled.h"
+#include "app_init.h"
 #define LC_RCO				//通过LC，测量通道一的频率来调节内部RC频率
 // #define SPI_RCO					//通过SPI调节内部RC频率
 #define XXXX_DEBUG                  0 /*!< set this to 1 to enable debug output */
@@ -25,6 +26,42 @@
 s8 as3933DebugRegs (void);
 #endif
 
+
+/*
+******************************************************************************
+* GLOBAL VARIABLES
+******************************************************************************
+*/
+//u8 as3933RegBackup[AS393X_NR_OF_REGISTERS];	/*!< AS3933 register backup memory */
+//spiConfig_t spi1Config;
+u8 as3933DebugBuffer[64];     //临时缓存寄存器
+/* for debugging, these values are used in function as3933TuneCapacitors() */
+u16 rawValueArray[RAW_VALUE_ARRAY_SIZE];//采集4次DAT引脚的频率
+u16 cBothEdgeCount, rawValue, delayLoop;//边沿个数，记录边沿个数，延时
+/*
+ * as3933TuneResults[0] ... results for X-coil
+ * as3933TuneResults[1] ... results for Y-coil
+ * as3933TuneResults[2] ... results for Z-coil
+ */
+as3933AntennaTuningResults as3933TuneResults[AS3933_NR_OF_ANTENNAS];
+
+//数据采集
+#define AS3933_NUM_BITS_TO_SAMPLE   32        // 异或值 + 状态字节+the 16 bits of the base station ID
+volatile u32 as3933LfSampleData;
+u8 as3933LfCurrentBit;
+volatile u16 as3933LfSampleBitCount;
+volatile u8 as3940LfSampleActive;
+u32 baseStationID;//边界管理器ID
+extern TAG_Sned_Typedef TAG_Sned;//发送次数
+
+
+#ifdef AS3933_DEBUG_RSSI			//显示信号强度
+#define AS3933_NUM_TOTAL_WAKEUPS    256
+u16 as3933TotalWakeups;
+u16 as3933TotalNumRssiX;
+u16 as3933TotalNumRssiY;
+u16 as3933TotalNumRssiZ;
+#endif
 
 
 /*
@@ -86,36 +123,7 @@ const u8 as3933RegisterDefaults[][2] =
     {0x12, 0x00}, /* will be set by antenna tuning routine */
     {0x13, 0x00}  /* will be set by antenna tuning routine */
 };
-/*
-******************************************************************************
-* GLOBAL VARIABLES
-******************************************************************************
-*/
-//u8 as3933RegBackup[AS393X_NR_OF_REGISTERS];	/*!< AS3933 register backup memory */
-//spiConfig_t spi1Config;
-u8 as3933DebugBuffer[64];     //临时缓存寄存器
-/* for debugging, these values are used in function as3933TuneCapacitors() */
-u16 rawValueArray[RAW_VALUE_ARRAY_SIZE];//采集4次DAT引脚的频率
-u16 cBothEdgeCount, rawValue, delayLoop;//边沿个数，记录边沿个数，延时
-/*
- * as3933TuneResults[0] ... results for X-coil
- * as3933TuneResults[1] ... results for Y-coil
- * as3933TuneResults[2] ... results for Z-coil
- */
-as3933AntennaTuningResults as3933TuneResults[AS3933_NR_OF_ANTENNAS];
-//volatile u32 as3933LfSampleData;
-//u8 as3933LfCurrentBit;
-//volatile u16 as3933LfSampleBitCount;
-//volatile BOOL as3940LfSampleActive;
 
-   
-#ifdef AS3933_DEBUG_RSSI			//显示信号强度
-#define AS3933_NUM_TOTAL_WAKEUPS    256
-u16 as3933TotalWakeups;
-u16 as3933TotalNumRssiX;
-u16 as3933TotalNumRssiY;
-u16 as3933TotalNumRssiZ;
-#endif
 
 
 /*
@@ -425,32 +433,31 @@ s8 as3933GetStrongestRssi(u8 *rssiX,u8 *rssiY,u8 *rssiZ)
 
 
 
-
-
-
-
-
-//4个数去掉最大值，最小值，然后取平均。
-uint16_t average(u16* data)
-{
-	u8 i = 0;
-	u16 max =*data;
-	u16 min =*data;
-	u16 sum = 0;
-	u16 average1 =0;
-	for(i=0;i<4;i++)
-	{
-		if(max>*(data+i)) max = max; else max = *(data+i);
-		if(min<*(data+i)) min = min; else min = *(data+i);
-		sum =sum+(*(data+i));
-	}
-	sum-=min;
-	sum-=max;
-	sum = sum>>1;
-	average1 = sum;
-	return average1;
-}
-
+/************************************************* 
+@Description:4个数去掉最大值，最小值，然后取平均。
+@Input:无
+@Output:无
+@Return:无
+*************************************************/ 
+//uint16_t average(u16* data)
+//{
+//	u8 i = 0;
+//	u16 max =*data;
+//	u16 min =*data;
+//	u16 sum = 0;
+//	u16 average1 =0;
+//	for(i=0;i<4;i++)
+//	{
+//		if(max>*(data+i)) max = max; else max = *(data+i);
+//		if(min<*(data+i)) min = min; else min = *(data+i);
+//		sum =sum+(*(data+i));
+//	}
+//	sum-=min;
+//	sum-=max;
+//	sum = sum>>2;
+//	average1 = sum;
+//	return average1;
+//}
 
 
 #define tim0_5ms
@@ -460,13 +467,12 @@ uint16_t average(u16* data)
 #if Single
 /************************************************* 
 @Description:单路天线调弦，增加电容，减少频率
-@Input:无
+@Input:capacitor 通道
 @Output:
 @Return:无
 *************************************************/ 
-void as3933TuneCapacitors(u8 capacitor)
+s8 as3933TuneCapacitors(u8 capacitor)
 {
-    u8 capacitor;//通道数
 //	u8 capacity;
     s8 retVal = 0;
 	s8 origFreqDone,dat_level,old_AS3933_DAT;
@@ -521,8 +527,8 @@ void as3933TuneCapacitors(u8 capacitor)
 					
 		noTimeout = cIC2TmrOverflowValue;
 
-		old_AS3933_DAT = AS3933_DAT;
-		while(old_AS3933_DAT == AS3933_DAT && noTimeout--);//电平相等
+		old_AS3933_DAT = Read_AS3933_DAT;
+		while(old_AS3933_DAT == Read_AS3933_DAT && noTimeout--);//电平相等
 				
 		if(noTimeout) 
 		{
@@ -538,14 +544,14 @@ void as3933TuneCapacitors(u8 capacitor)
 				NRF_TIMER0->CC[0]          = tim0_cc;//5ms
 				
 				rawValue = 0;
-				while(1 == AS3933_DAT); //等待电平置0
+				while(1 == Read_AS3933_DAT); //等待电平置0
 				
 				dat_level=1;	
 				NRF_TIMER0->EVENTS_COMPARE[0]=0;//clear
 				NRF_TIMER0->TASKS_START    = 1; // Start timer.
 				while(NRF_TIMER0->EVENTS_COMPARE[0]==0)
 				{
-					if(AS3933_DAT==dat_level)//if(DAT==dat_level)
+					if(Read_AS3933_DAT==dat_level)//if(DAT==dat_level)
 					{
 						if(dat_level)dat_level=0;
 						else dat_level=1;
@@ -687,8 +693,8 @@ s8 as3933AntennaTuning (void)
 						
 			noTimeout = cIC2TmrOverflowValue;
 
-			old_AS3933_DAT = AS3933_DAT;
-			while(old_AS3933_DAT == AS3933_DAT && noTimeout--);//电平相等
+			old_AS3933_DAT = Read_AS3933_DAT;
+			while(old_AS3933_DAT == Read_AS3933_DAT && noTimeout--);//电平相等
 					
 			if(noTimeout) 
 			{
@@ -704,14 +710,14 @@ s8 as3933AntennaTuning (void)
 					NRF_TIMER0->CC[0]          = tim0_cc;//5ms
 					
 					rawValue = 0;
-					while(1 == AS3933_DAT); //等待电平置0
+					while(1 == Read_AS3933_DAT); //等待电平置0
 					
 					dat_level=1;	
 					NRF_TIMER0->EVENTS_COMPARE[0]=0;//clear
 					NRF_TIMER0->TASKS_START    = 1; // Start timer.
 					while(NRF_TIMER0->EVENTS_COMPARE[0]==0)
 					{
-						if(AS3933_DAT==dat_level)//if(DAT==dat_level)
+						if(Read_AS3933_DAT==dat_level)//if(DAT==dat_level)
 						{
 							if(dat_level)dat_level=0;
 							else dat_level=1;
@@ -830,19 +836,51 @@ s8 as3933AntennaTuning (void)
 //    }
 //    InputChange_Clear_Intr_Status_Bit;
 //}
-
-extern uint8_t	aucPayload[32];
-extern uint8_t TagID[4];
-extern void radio_tx_carrier(uint8_t txpower, uint8_t channel);
-extern uint8_t data_channel;//射频发射频率
+/************************************************* 
+@Description:AS3933错误
+@Input:无
+@Output:
+@Return:无
+*************************************************/ 
+const uint16_t AS3933_InitWrong_Buf[5] = {0xB3F5,0XCABC,0XBBAF,0XB4ED,0XCEF3};//初始化错误
+const uint16_t AS3933_RCOWrong_Buf[5] = {0xCAB1,0XD6D3,0XB4ED,0XCEF3};//时钟错误
+const uint16_t AS3933_FreqWrong_Buf[5] = {0xC6B5,0XC2CA,0XB4ED,0XCEF3};//频率错误
+void as3933_Wrong(uint8_t wrong)
+{
+	FilleScreen(COLOR_BLACK);
+	OLED_ShowString(0,0,"AS3933:",ascii_1608);
+	switch(wrong)
+	{
+		case 1:OLED_Show_ChineseS(0,16,AS3933_InitWrong_Buf,5);break;
+		case 2:OLED_Show_ChineseS(0,16,AS3933_RCOWrong_Buf,4);break;
+		case 3:OLED_Show_ChineseS(0,16,AS3933_FreqWrong_Buf,4);break;
+	}
+	OLED_Refresh_Gram();
+	while(1);
+}
+/************************************************* 
+@Description:AS3933初始化
+@Input:无
+@Output:
+@Return:无
+*************************************************/ 
 void as3933_Init(void)
 {
-	  uint8_t i,as3933_j,rf_xor;
+	
+	uint8_t i,as3933_j;
+
+	//IO初始化
+	NRF_GPIO->PIN_CNF[AS3933_CS_PIN_NUM]=IO_OUTPUT;	//AS3933-CS
+	NRF_GPIO->PIN_CNF[AS3933_SCLK_PIN_NUM]=IO_OUTPUT;	//AS3933-SCL
+	NRF_GPIO->PIN_CNF[AS3933_SDI_PIN_NUM]=IO_OUTPUT;	//AS3933-SDI
+	NRF_GPIO->PIN_CNF[AS3933_SDO_PIN_NUM]=IO_INPUT_Pulldown;	//AS3933-SDO, pull down
+	NRF_GPIO->PIN_CNF[AS3933_DAT_PIN_NUM]=IO_INPUT_Pulldown;	//AS3933-DAT, pull down
+	NRF_GPIO->PIN_CNF[AS3933_CLDAT_PIN_NUM]=IO_INPUT_Pulldown;	//AS3933-CL, pull down
+	NRF_GPIO->PIN_CNF[AS3933_WAKE_PIN_NUM]=0x020000;//AS3933-WAKE, sense for high level, no pull
     /* initialize the AS3933 wakeup receiver */
     if (as3933Initialize() < 0)
     {
-		LED_ON;
-		while(1);
+		as3933_Wrong(1);
     }
 
     /* calibrate the AS3933 RCO using the (not trimmed and therefore <1% accuracy) PIC RCO for calibration */
@@ -850,8 +888,7 @@ void as3933_Init(void)
     /* calibrate the AS3933 RCO using LC calibration */
     if (as3933CalibrateRCOViaLCO() < 0)
     {
-		LED_ON;
-        while(1);	
+		as3933_Wrong(2);
     }
     /* tune the antennas */
     as3933AntennaTuning();
@@ -865,39 +902,100 @@ void as3933_Init(void)
 			as3933_j++;
         }
     }
-	if(as3933_j>0)
+	if(as3933_j>1)
 	{
-		LED_ON;
-		while(1)
-		{
-			s3933TuneResults[0].resonanceFrequencyOrig/1000;
-			as3933TuneResults[1].resonanceFrequencyOrig/1000;
-			as3933TuneResults[2].resonanceFrequencyOrig/1000;
-		}
+//		s3933TuneResults[0].resonanceFrequencyOrig/1000;
+//		as3933TuneResults[1].resonanceFrequencyOrig/1000;
+//		as3933TuneResults[2].resonanceFrequencyOrig/1000;
+		as3933_Wrong(3);
+		
 	}
-	LED_OFF;
+}
+/*--------------------------------------------------------
+数据采集
+--------------------------------------------------------*/
+/************************************************* 
+@Description:使能CL_DAT中断
+@Input:无
+@Output:
+@Return:无
+*************************************************/ 
+void EnableCLDAT_INT(void)
+{
+	NRF_GPIO->PIN_CNF[AS3933_CLDAT_PIN_NUM]=0X00000000;	//配置成输入
+	NRF_GPIOTE->CONFIG[0] =  (GPIOTE_CONFIG_POLARITY_LoToHi << GPIOTE_CONFIG_POLARITY_Pos)
+                           | (AS3933_CLDAT_PIN_NUM<< GPIOTE_CONFIG_PSEL_Pos)  
+                           | (GPIOTE_CONFIG_MODE_Event << GPIOTE_CONFIG_MODE_Pos);
+	NRF_GPIOTE->EVENTS_IN[0] = 0; 
+	NRF_GPIOTE->INTENSET  = GPIOTE_INTENSET_IN0_Set << GPIOTE_INTENSET_IN0_Pos;
+	
+}
+
+/************************************************* 
+@Description:不使能使能CL_DAT中断
+@Input:无
+@Output:
+@Return:无
+*************************************************/ 
+void DisableCLDAT_INT(void)
+{
+	// clear any pending wake IRQ
+    as3933SendCommand(clear_wake);
+	NRF_GPIO->PIN_CNF[AS3933_CLDAT_PIN_NUM]=IO_LP_State;	
+	NRF_GPIOTE->CONFIG[0] =  0x0;
+	NRF_GPIOTE->EVENTS_IN[0] = 0;
+	NRF_GPIOTE->INTENCLR = 	GPIOTE_INTENSET_IN0_Msk;
+}
+/************************************************* 
+@Description:使能CL_DAT中断，上升沿采集数据
+@Input:无
+@Output:
+@Return:无
+*************************************************/ 
+s8 as3933SampleData (u32 * sampleData)
+{
+    s8 retVal = ERR_NONE;
+
+	EnableCLDAT_INT();//使能IO中断
+    as3933LfSampleBitCount = 0;
+    as3933LfSampleData     = 0;
+    as3940LfSampleActive   = TRUE;
+//    //SET_DBG_0();
+//    while (as3940LfSampleActive);
+//    //CLR_DBG_0();
+//    *sampleData = as3933LfSampleData;    
+    return retVal;
 }
 
 
-void INTERRUPT inputChangeIsr(void)
+/************************************************* 
+@Description:AS3933唤醒中断处理函数
+@Input:无
+@Output:
+@Return:无
+*************************************************/ 
+void as3933_inputChangeIsr(void)
 {
     /*
      * check the polarity of the clock pin;
      * data can be sampled on rising edge -> when pin is high take the data from
      * the
      */
-    if (AS3933_CL_DAT_PIN)
+    if (Read_AS3933_DAT)
     {
         if (as3933LfSampleBitCount < AS3933_NUM_BITS_TO_SAMPLE)
         {
             as3933LfSampleData <<= 1;
-            as3933LfCurrentBit = (AS3933_DAT_PIN ? 1 : 0);
+            as3933LfCurrentBit = (Read_AS3933_DAT ? 1 : 0);
             as3933LfSampleData |= as3933LfCurrentBit;
             as3933LfSampleBitCount++;
         }
         else
         {
+			TAG_Sned.BaseID_Cnt = 0;
             as3940LfSampleActive = FALSE;
+			DisableCLDAT_INT();//关中断
+			baseStationID = as3933LfSampleData;
         }
     }
     else
@@ -905,7 +1003,49 @@ void INTERRUPT inputChangeIsr(void)
         if (as3933LfSampleBitCount >= AS3933_NUM_BITS_TO_SAMPLE)
         {
             as3940LfSampleActive = FALSE;
+			DisableCLDAT_INT();
         }
     }
-    InputChange_Clear_Intr_Status_Bit;
+}
+
+
+/************************************************* 
+@Description:AS3933唤醒中断处理函数
+@Input:无
+@Output:
+@Return:无
+*************************************************/ 
+extern GPIO_IntSource_Typedef GPIO_IntSource;
+uint8_t as3933_cnt;//超时计数
+#define as3933_cnt_const 2
+void as3933_wakeupIsr(void)
+{
+	if(1 == Read_AS3933_WAKE)
+	{
+		/* get the baseStation ID from the LF signal */
+		baseStationID |= 0XFFFF;
+		TAG_Sned.BaseID_Cnt = 0xff;//不发送ID
+		as3933SampleData(&baseStationID);
+		GPIO_IntSource.AS3933_Wake_Int = 1;
+		as3933_cnt = 0;//开始计数
+		rtc1_init();//开始计数
+	}
+}
+
+/************************************************* 
+@Description:采样超时
+@Input:无
+@Output:
+@Return:无
+*************************************************/ 
+extern GPIO_IntSource_Typedef GPIO_IntSource;
+void as3933_TimeOut(void)
+{
+	as3933_cnt++;
+	if(as3933_cnt >= as3933_cnt_const)
+	{
+		DisableCLDAT_INT();//清除IO中断
+		if(0 == GPIO_IntSource.Key_Int)
+			rtc1_deinit();//清除超时中断
+	}
 }

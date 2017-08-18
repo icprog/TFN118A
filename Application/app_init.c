@@ -3,12 +3,14 @@
 #include "simple_uart.h"
 #include "Debug_log.h"
 #include "nrf_delay.h"
+#include "as3933.h"
 #define rtc_interval 1  //单位s
-#define rtc_base ((32768*rtc_interval) - 1)
+#define rtc_base  32767//((32768*rtc_interval) - 1)
 
 
 bat_typedef battery;//电池电量
-
+GPIO_IntSource_Typedef GPIO_IntSource = {0,0};//GPIO中断来源
+extern volatile uint8_t Key_Scan_En;//按键扫描使能标志位
 /************************************************* 
 @Description:配置低频时钟时钟源  
 @Input:
@@ -120,7 +122,7 @@ void rtc1_init(void)
 void rtc1_deinit(void)
 {	
 	NRF_RTC1->TASKS_STOP = 1;
-	NRF_RTC1->INTENSET &=  (~RTC_INTENCLR_COMPARE0_Msk);//中断不使能
+	NRF_RTC1->INTENCLR = RTC_INTENCLR_COMPARE0_Msk;//中断不使能
 	NVIC_DisableIRQ( RTC1_IRQn );	
 }
 
@@ -130,21 +132,16 @@ void rtc1_deinit(void)
 @Output:无
 @Return:无
 */
+uint16_t old_period = 0;//上一个周期
+uint16_t new_period;
+uint8_t advDelay = 0;//随机数
+//uint8_t oldDelay;//旧随机数
+uint16_t new_rtc_base;
 void rtc_update_interval(void)
 {
-	uint8_t state=0;
-	uint8_t advDelay = random_vector_generate();//0~255 0~7.65ms
-	if(state)
-	{
-		NRF_RTC0->CC[0] = rtc_base + advDelay;
-		state = 0;
-	}
-	else
-	{
-		NRF_RTC0->CC[0] = rtc_base - advDelay;
-		state = 1;
-	}
-	
+	new_rtc_base = rtc_base - advDelay;//减去随机数
+	advDelay = random_vector_generate();//0~255 0~7.65ms
+	NRF_RTC0->CC[0] = new_rtc_base + advDelay;//每次与标准事件只相差随机数
 }
 /************************************************* 
 @Description:启动外部晶振
@@ -244,31 +241,31 @@ static uint16_t adc_convert_single(void)
 	return val;
 }
 
-/************************************************* 
-@Description:4个数去掉最大值，最小值，然后取平均。
-@Input:无
-@Output:无
-@Return:无
-*************************************************/ 
-uint16_t average(u16* data)
-{
-	u8 i = 0;
-	u16 max =*data;
-	u16 min =*data;
-	u16 sum = 0;
-	u16 average1 =0;
-	for(i=0;i<4;i++)
-	{
-		if(max>*(data+i)) max = max; else max = *(data+i);
-		if(min<*(data+i)) min = min; else min = *(data+i);
-		sum =sum+(*(data+i));
-	}
-	sum-=min;
-	sum-=max;
-	sum = sum>>2;
-	average1 = sum;
-	return average1;
-}
+///************************************************* 
+//@Description:4个数去掉最大值，最小值，然后取平均。
+//@Input:无
+//@Output:无
+//@Return:无
+//*************************************************/ 
+//uint16_t average(u16* data)
+//{
+//	u8 i = 0;
+//	u16 max =*data;
+//	u16 min =*data;
+//	u16 sum = 0;
+//	u16 average1 =0;
+//	for(i=0;i<4;i++)
+//	{
+//		if(max>*(data+i)) max = max; else max = *(data+i);
+//		if(min<*(data+i)) min = min; else min = *(data+i);
+//		sum =sum+(*(data+i));
+//	}
+//	sum-=min;
+//	sum-=max;
+//	sum = sum>>2;
+//	average1 = sum;
+//	return average1;
+//}
 
 /************************************************* 
 @Description:多次采集电量,1分钟采集一次电量，考虑是否调用该函数
@@ -345,12 +342,12 @@ u8 battery_check_read(void)
 *************************************************/ 
 static void io_interrupt_config(void)
 {
-	//充电指示IO口设置
-	NRF_GPIO->PIN_CNF[USB_CHR_Pin_Num]=GPIO_PIN_CNF_SENSE_Low<<GPIO_PIN_CNF_SENSE_Pos			//low level
-										| (GPIO_PIN_CNF_DRIVE_S0S1 << GPIO_PIN_CNF_DRIVE_Pos)
-                                        | (GPIO_PIN_CNF_PULL_Disabled << GPIO_PIN_CNF_PULL_Pos)
-                                        | (GPIO_PIN_CNF_INPUT_Connect << GPIO_PIN_CNF_INPUT_Pos)
-                                        | (GPIO_PIN_CNF_DIR_Input << GPIO_PIN_CNF_DIR_Pos);								
+//	//充电指示IO口设置
+//	NRF_GPIO->PIN_CNF[USB_CHR_Pin_Num]=GPIO_PIN_CNF_SENSE_Low<<GPIO_PIN_CNF_SENSE_Pos			//low level
+//										| (GPIO_PIN_CNF_DRIVE_S0S1 << GPIO_PIN_CNF_DRIVE_Pos)
+//                                        | (GPIO_PIN_CNF_PULL_Disabled << GPIO_PIN_CNF_PULL_Pos)
+//                                        | (GPIO_PIN_CNF_INPUT_Connect << GPIO_PIN_CNF_INPUT_Pos)
+//                                        | (GPIO_PIN_CNF_DIR_Input << GPIO_PIN_CNF_DIR_Pos);								
 	//按键
 	NRF_GPIO->PIN_CNF[KEY_Pin_Num]=(GPIO_PIN_CNF_SENSE_Low << GPIO_PIN_CNF_SENSE_Pos)			//low level
 										| (GPIO_PIN_CNF_DRIVE_S0S1 << GPIO_PIN_CNF_DRIVE_Pos)
@@ -358,7 +355,7 @@ static void io_interrupt_config(void)
                                         | (GPIO_PIN_CNF_INPUT_Connect << GPIO_PIN_CNF_INPUT_Pos)
                                         | (GPIO_PIN_CNF_DIR_Input << GPIO_PIN_CNF_DIR_Pos);
 	NRF_GPIOTE->EVENTS_PORT=0UL;
-	NRF_GPIOTE->INTENSET=GPIOTE_INTENSET_PORT_Enabled << GPIOTE_INTENSET_PORT_Pos;	//PORT
+	NRF_GPIOTE->INTENSET =GPIOTE_INTENSET_PORT_Enabled << GPIOTE_INTENSET_PORT_Pos;	//PORT
 	NVIC_SetPriority(GPIOTE_IRQn, PORT_PRIORITY);
 	NVIC_EnableIRQ(GPIOTE_IRQn);
 }
@@ -400,6 +397,18 @@ void app_init(void)
 	
 }
 /************************************************* 
+@Description:电机震动下
+@Input:无
+@Output:
+@Return:无
+*************************************************/ 
+void Motor_Work(void)
+{
+	Motor_Run();//电机测试
+	nrf_delay_ms(500);
+	Motor_Stop();
+}
+/************************************************* 
 @Description:IO中断函数,下降沿
 @Input:无
 @Output:
@@ -424,10 +433,40 @@ void GPIOTE_IRQHandler(void)
 //			nrf_delay_ms(10);
 			onKeyEvent();
 			Port_IT_KEY++;
+			GPIO_IntSource.Key_Int = 1;
 		}
+//		as3933_wakeupIsr();
+	}
+	else if(NRF_GPIOTE->EVENTS_IN[0])
+	{
+		NRF_GPIOTE->EVENTS_IN[0] = 0;
 	}
 }
 
+
+/************************************************* 
+@Description:消抖计时器
+@Input:无
+@Output:无
+@Return:无
+*************************************************/ 
+
+void RTC1_IRQHandler(void)
+{
+	if(NRF_RTC1->EVENTS_COMPARE[0])
+	{
+		NRF_RTC1->EVENTS_COMPARE[0]=0UL;	//clear event
+		NRF_RTC1->TASKS_CLEAR=1UL;	//clear count
+		if(GPIO_IntSource.Key_Int)//按键扫描
+		{
+			Key_Scan_En = 1;//按键扫描使能			
+		}
+		if(GPIO_IntSource.AS3933_Wake_Int)//wakeup中断
+		{
+			as3933_TimeOut();
+		}
+	}
+}
 
 #endif
 

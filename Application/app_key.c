@@ -19,15 +19,17 @@ uint16_t key_tim;//计数值，间隔40ms
 uint16_t key_double_tim;//记录单机后，按键抬起时间
 uint16_t key_up_tim;//按键抬起计时
  
-#define key_double_interval 12   //480ms
+#define key_double_interval 10   //400ms
 #define key_up_delay (key_double_interval*2)
 extern uint16_t Key_Alarm_Delay;
-uint8_t Key_Scan_En;//按键扫描使能标志位
+volatile uint8_t Key_Scan_En;//按键扫描使能标志位
 
 void Key_Func(void);//按键功能处理函数
 extern uint8_t State_Key_Alram;//按键报警
 //标签状态字
 extern TAG_STATE_Typedef TAG_STATE;//标签
+
+extern GPIO_IntSource_Typedef GPIO_IntSource;//GPIO中断来源
 typedef enum
 {
 	no_press,
@@ -35,7 +37,7 @@ typedef enum
 	double_press,//双击
 	long_press//长按
 }Key_Value;
-
+extern GPIO_IntSource_Typedef GPIO_IntSource;//rtc1中断来源
 //typedef struct
 //{
 //	uint8_t short_press_happen;//短按标志位
@@ -80,24 +82,6 @@ void onKeyEvent(void)
 	Key_Read_Disable_Interrupt();//按键中断不使能
 }
 
-
-/************************************************* 
-@Description:消抖计时器
-@Input:无
-@Output:无
-@Return:无
-*************************************************/ 
-void RTC1_IRQHandler(void)
-{
-	if(NRF_RTC1->EVENTS_COMPARE[0])
-	{
-		NRF_RTC1->EVENTS_COMPARE[0]=0UL;	//clear event
-		NRF_RTC1->TASKS_CLEAR=1UL;	//clear count
-//		key_tim++;//按键计数
-//		key_double_tim++;
-		Key_Scan_En = 1;//按键扫描使能
-	}
-}
 
 
 /************************************************* 
@@ -278,6 +262,7 @@ void Key_Func(void)
 {
 	if(0 == key_state)//抬起
 	{
+		GPIO_IntSource.Key_Int = 0;
 		rtc1_deinit();//停止扫描按键	
 		Key_Read_Enable_Interrupt();//按键 中断使能
 	}
@@ -311,15 +296,18 @@ void Key_Func(void)
 				
 			}
 			OLED1.OLED_TimeCnt=0;
-			OLED_SHOW();
 			key_cnt = 1;
 			k1.Value = no_press;
+			OLED_SHOW();
 			break;
 		case double_press:
+			TAG_STATE.State_Update_Time = Time_Update;
+			Motor_Work();
 			key_cnt = 2;
 			k1.Value = no_press;		
 			break;
 		case long_press:
+			Motor_Work();
 			key_cnt = 3;
 			TAG_STATE.State_Key_Alram = 1;
 			k1.Value = no_press;

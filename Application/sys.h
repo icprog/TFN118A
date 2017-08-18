@@ -10,6 +10,7 @@ typedef uint32_t  u32;
 typedef uint16_t u16;
 typedef uint8_t  u8;
 typedef int8_t   int8;
+typedef int8_t   s8;
 typedef int16_t int16;
 typedef int32_t int32; 
 typedef float float32_t;
@@ -22,4 +23,5 @@ void copybuf(u8 *dest,const u8 *str,u16 size);
 void my_memset(u8 *dest,u8 ch,u16 size);
 void *my_memcpy(void* dest,const void* src,u16 size);
 uint8_t Get_Xor(u8 *src,u16 size);
+uint16_t average(u16* data);
 #endif

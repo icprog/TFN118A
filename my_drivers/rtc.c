@@ -277,7 +277,7 @@ void RTC_Time_Set(uint32_t RTCtime)
 		Global_Time.month = DecToBCD(temp_time.month);//month
 		Global_Time.year = DecToBCD((uint8_t)temp_time.year);//year
 		Global_Time.week  = get_day_of_week(Global_Time);
-		TAG_STATE.State_Update_Time = Time_NoUpdate;
+		TAG_STATE.State_Update_Time = Time_NoUpdate;//时间更新完成
 	}
 }
 
@@ -403,7 +403,7 @@ void RTC0_IRQHandler(void)
 	{
 		NRF_RTC0->EVENTS_COMPARE[0]=0UL;	//clear event
 		NRF_RTC0->TASKS_CLEAR=1UL;	//clear count
-//		rtc_update_interval();
+		rtc_update_interval();
 		rtc_flag=1;
 		Calendar21Century(&Global_Time);
 		if(Global_Time.hour == 0x00&&Global_Time.min == 00 && Global_Time.sec == 0x00)
