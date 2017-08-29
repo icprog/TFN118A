@@ -351,6 +351,7 @@ void Radio_Cmd_Deal(void)
 				switch(cmd)
 				{
 					case FILE_CMD_READ://文件读取-点对点
+					{
 						f_para.mode = cmd_packet.packet[FILE_MODE_IDX];
 						f_para.offset = cmd_packet.packet[FILE_OFFSET_IDX]<<8|cmd_packet.packet[FILE_OFFSET_IDX+1];
 						f_para.length = cmd_packet.packet[FILE_LENGTH_IDX];
@@ -366,9 +367,10 @@ void Radio_Cmd_Deal(void)
 						cmd_packet.packet[RADIO_LENGTH_IDX] = cmd_packet.length;
 						cmd_packet.packet[cmd_packet.length+RADIO_HEAD_LENGTH-1]=Get_Xor(cmd_packet.packet,cmd_packet.length+1);
 						Radio_Period_Send(WithCmd,WithoutWin,SendWait);
-						
-						break;
+					}
+					break;
 					case FILE_CMD_WRITE://文件写入-点对点
+					{
 						f_para.mode = cmd_packet.packet[FILE_MODE_IDX];
 						f_para.offset = cmd_packet.packet[FILE_OFFSET_IDX]<<8|cmd_packet.packet[FILE_OFFSET_IDX+1];
 						f_para.length = cmd_packet.packet[FILE_LENGTH_IDX];
@@ -378,13 +380,15 @@ void Radio_Cmd_Deal(void)
 						cmd_packet.packet[RADIO_LENGTH_IDX] = cmd_packet.length;
 						cmd_packet.packet[cmd_packet.length+RADIO_HEAD_LENGTH-1]=Get_Xor(cmd_packet.packet,cmd_packet.length+1);
 						Radio_Period_Send(WithCmd,WithoutWin,SendWait);		
-						break;
+					}	
+					break;
 					case DEVICE_TEST_CMD:
 					{
 						function_test();
 					}
 					break;
 					case  MESSAGE_CMD://消息处理，每次只接收一条消息
+					{
 						RADIO_RX_OT = RADIO_MESSAGE_OT;//如果是消息命令，则延长接收窗口时间
 						if(0 == (cmd_packet.packet[MSG_HEAD_IDX]&MSG_HEAD_Msk))//消息下发通知命令
 						{
@@ -426,13 +430,19 @@ void Radio_Cmd_Deal(void)
 							}
 
 						}
+					}
+					break;
 					case TIME_SET_CMD:
+					{
 						rtc_time = (cmd_packet.packet[CMD_IDX+1] << 24)|(cmd_packet.packet[CMD_IDX+2] <<16)
 						|(cmd_packet.packet[CMD_IDX+3]<<8)|(cmd_packet.packet[CMD_IDX+4]); 
 						RTC_Time_Set(rtc_time);
+					}
 					break;
 					case ALARM_CLEAR_CMD:
+					{
 						TAG_STATE.State_Key_Alram = 0;
+					}
 					break;
 					default:break;
 				}							

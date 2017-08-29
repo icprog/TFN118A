@@ -125,7 +125,7 @@ int main(void)
 			OLED1.OLED_TimeCnt++;
 			if(OLED1.OLED_TimeCnt > OLED_PowerOn_Time)
 			{
-				OLED1.OLED_PowerOn = empty_page;
+				
 				OLED_DeInit();
 			}
 		}

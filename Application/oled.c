@@ -907,10 +907,12 @@ void OLED_SHOW_Clock(void)
 @Output:无
 @Return:无
 *************************************************/ 
+extern OLED_Typedef OLED1;//oled状态
 void OLED_DeInit(void)
 {
 	if(1 == OLED_Power_Flag)
 	{
+		OLED1.OLED_PowerOn = empty_page;
 		GT24L24A2Y_Spi_DeInit();
 		FilleScreen(COLOR_BLACK);
 		OLED_WR_Byte(0xAE,OLED_CMD);     	//Set Display Off 
