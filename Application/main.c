@@ -101,7 +101,7 @@ int main(void)
 	#if TEST
 	function_test();
 	#endif
-	OLED_Init();
+	
 	//初始电量采集
 	nrf_delay_ms(1000);
 	battery.bat_capacity = battery_check_read();//读取电量

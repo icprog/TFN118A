@@ -26,7 +26,7 @@
 #if TEST
 const uint16_t Motor_Buf[4] = {0xB5E7,0XBBFA,0XB2E2,0XCAD4}; //电机测试GB18030
 const uint16_t GSensor_Buf[5] = {0xBCD3,0XCBD9,0XB6C8,0XB2E2,0XCAD4};//加速度测试GB18030
-const uint16_t GSensorWrong_Buf[5] = {0xBCD3,0XCBD9,0XB6C8,0XCAA7,0XC0DC};//加速度失败GB18030
+const uint16_t GSensorWrong_Buf[5] = {0xBCD3,0XCBD9,0XB6C8,0XCAA7,0Xb0DC};//加速度失败GB18030
 void function_test(void)
 {
 
@@ -45,7 +45,7 @@ void function_test(void)
 	nrf_delay_ms(2000);
 	
 	FilleScreen(COLOR_BLACK);//清屏
-	OLED_Show_ChineseS(0,8,GSensor_Buf,5);
+	OLED_Show_ChineseS(0,8,GSensorWrong_Buf,5);
 	OLED_Refresh_Gram();
 	nrf_delay_ms(1000);
 	if(!lis3dhInit())//加速度测试

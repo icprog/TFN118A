@@ -12,16 +12,16 @@
 *******************************************************************************/
 #ifndef AS3933_H
 #define AS3933_H
-
+#include "sys.h"
 
 /*------------AS3933------------*/
-#define AS3933_CS_PIN_NUM 15     //CS OUT
-#define AS3933_SCLK_PIN_NUM 14    //SCL OUT
-#define AS3933_SDI_PIN_NUM 13    //SDI-MOSI OUT
-#define AS3933_SDO_PIN_NUM 12    //SDO-MISO in/cs低，处于三态
-#define AS3933_DAT_PIN_NUM 11    //DAT IN
-#define AS3933_CLDAT_PIN_NUM 10  //CL_DAT 
-#define AS3933_WAKE_PIN_NUM 3
+#define AS3933_CS_PIN_NUM 30     //CS OUT
+#define AS3933_SCLK_PIN_NUM 4    //SCL OUT
+#define AS3933_SDI_PIN_NUM 5    //SDI-MOSI OUT
+#define AS3933_SDO_PIN_NUM 7    //SDO-MISO in/cs低，处于三态
+#define AS3933_DAT_PIN_NUM 1    //DAT IN
+#define AS3933_CLDAT_PIN_NUM 0  //CL_DAT 
+#define AS3933_WAKE_PIN_NUM 2
 
 #define AS3933_SDI_Set (NRF_GPIO->OUTSET=0x01UL<<AS3933_SDI_PIN_NUM)  //SDI=1
 #define AS3933_SDI_Clr (NRF_GPIO->OUTCLR=0x01UL<<AS3933_SDI_PIN_NUM)  //SDI=0
@@ -31,10 +31,12 @@
 #define AS3933_CS_Clr (NRF_GPIO->OUTCLR=0x01UL<<AS3933_CS_PIN_NUM)  //CS =0;
 #define Read_AS3933_SDO  ((NRF_GPIO->IN>>AS3933_SDO_PIN_NUM)&1UL)  //SDO
 #define Read_AS3933_DAT  ((NRF_GPIO->IN>>AS3933_DAT_PIN_NUM)&1UL)  //DAT
+#define Read_AS3933_CLDAT ((NRF_GPIO->IN>>AS3933_CLDAT_PIN_NUM)&1UL)//CL_DAT
 #define Read_AS3933_WAKE ((NRF_GPIO->IN>>AS3933_WAKE_PIN_NUM)&1UL) 
 
+
 //#include "platform.h"
-#include "sys.h"
+
 
 #define OLED_PWR_Pin_Num  14 
 #define OLED_PWR_ON() do{NRF_GPIO->OUTSET = (1 << OLED_PWR_Pin_Num);}while(0)//OLED电源开启
@@ -76,8 +78,8 @@
 #define AS393X_NR_OF_REGISTERS      20
 #define AS3933_NR_OF_ANTENNAS       3
 
-#define AS3933_RES_FREQ_MAX         122000UL
-#define AS3933_RES_FREQ_MIN         118000UL
+#define AS3933_RES_FREQ_MAX         130000UL
+#define AS3933_RES_FREQ_MIN         120000UL
 
 #define AS3933_R0_val 0x5e	//SCAN
 #define AS3933_R0_OFF 0x60
@@ -179,16 +181,14 @@ typedef struct
  *  \return #ERR_NONE : No error
  *****************************************************************************
  */
-extern s8 as3933Initialize (void);
-extern s8 as3933Deinitialize (void);
-extern s8 as3933Reinitialize (void);
+
 
 extern s8 as3933GetStrongestRssi(u8 *rssiX,u8 *rssiY,u8 *rssiZ);
 
 extern s8 as3933DebugRegs (void);
 void as3933_Init(void);
 void as3933_TimeOut(void);
-
+void as3933_inputChangeIsr(void);
 void as3933_wakeupIsr(void);
 
 #endif /* AS3933_H */

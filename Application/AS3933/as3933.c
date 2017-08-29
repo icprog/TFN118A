@@ -17,6 +17,7 @@
 #include "nrf_delay.h"
 #include "oled.h"
 #include "app_init.h"
+#include "GT24L24A2Y.h"
 #define LC_RCO				//通过LC，测量通道一的频率来调节内部RC频率
 // #define SPI_RCO					//通过SPI调节内部RC频率
 #define XXXX_DEBUG                  0 /*!< set this to 1 to enable debug output */
@@ -126,11 +127,12 @@ const u8 as3933RegisterDefaults[][2] =
 
 
 
-/*
-******************************************************************************
-* GLOBAL FUNCTION
-******************************************************************************
-*/
+/************************************************* 
+@Description:寄存器配置
+@Input:无
+@Output:无
+@Return:无
+*************************************************/ 
 s8 as3933Initialize()
 {
     s8 retVal = ERR_NONE;
@@ -180,8 +182,58 @@ s8 as3933DebugRegs (void)
     return retVal;
 }
 #endif
-
-s8 as3933Deinitialize()
+/************************************************* 
+@Description:延时
+@Input:ms
+@Output:无
+@Return:无
+*************************************************/ 
+void msSleep(u8 ms)
+{
+	nrf_delay_ms(ms);
+}
+/************************************************* 
+@Description:IO初始化
+@Input:无
+@Output:无
+@Return:无
+*************************************************/ 
+void as3933IoInit(void)
+{
+	//IO初始化
+	NRF_GPIO->PIN_CNF[AS3933_CS_PIN_NUM]=IO_OUTPUT;	//AS3933-CS
+	NRF_GPIO->PIN_CNF[AS3933_SCLK_PIN_NUM]=IO_OUTPUT;	//AS3933-SCL
+	NRF_GPIO->PIN_CNF[AS3933_SDI_PIN_NUM]=IO_OUTPUT;	//AS3933-SDI
+	NRF_GPIO->PIN_CNF[AS3933_SDO_PIN_NUM]=IO_INPUT_Pulldown;	//AS3933-SDO, pull down
+//	NRF_GPIO->PIN_CNF[AS3933_DAT_PIN_NUM]=IO_INPUT_Pulldown;	//AS3933-DAT, pull down
+//	NRF_GPIO->PIN_CNF[AS3933_CLDAT_PIN_NUM]=IO_INPUT_Pulldown;	//AS3933-CL, pull down
+	NRF_GPIO->PIN_CNF[AS3933_WAKE_PIN_NUM]=0x020000;//AS3933-WAKE, sense for high level, no pull
+	AS3933_CS_Clr;
+	nrf_delay_ms(1);
+}
+/************************************************* 
+@Description:IO卸载
+@Input:无
+@Output:无
+@Return:无
+*************************************************/ 
+void as3933IoDeInit(void)
+{
+	//IO初始化
+	NRF_GPIO->PIN_CNF[AS3933_SCLK_PIN_NUM]=IO_LP_State;	//低功耗
+	NRF_GPIO->PIN_CNF[AS3933_SDI_PIN_NUM]=IO_LP_State;	//低功耗
+	NRF_GPIO->PIN_CNF[AS3933_SDO_PIN_NUM]=IO_LP_State;	//低功耗
+//	NRF_GPIO->PIN_CNF[AS3933_DAT_PIN_NUM]=IO_INPUT_Pulldown;	//AS3933-DAT, pull down
+//	NRF_GPIO->PIN_CNF[AS3933_CLDAT_PIN_NUM]=IO_INPUT_Pulldown;	//AS3933-CL, pull down
+	NRF_GPIO->PIN_CNF[AS3933_WAKE_PIN_NUM]=0x020000;//AS3933-WAKE, sense for high level, no pull
+}
+/************************************************* 
+@Description:
+@Input:无
+@Output:无
+@Return:无
+*************************************************/ 
+s8 as3933Deinitialize(void)
 {
     return ERR_NONE;
 }
@@ -191,15 +243,13 @@ s8 as3933Reinitialize(void)
     return ERR_NONE;
 }
 
-void msSleep(u8 cnt)
-{
-	nrf_delay_ms(cnt);
-}
-/*
-******************************************************************************
-* 通过LC调节内部RC
-******************************************************************************
-*/
+
+/************************************************* 
+@Description:通过通道1的LC调节内部RC
+@Input:无
+@Output:无
+@Return:无
+*************************************************/ 
 s8 as3933CalibrateRCOViaLCO (void)
 {
 #ifdef LC_RCO
@@ -247,70 +297,43 @@ s8 as3933CalibrateRCOViaLCO (void)
 #endif
 }
 
-
-/*
-******************************************************************************
-* 通过RC调节内部RC
-******************************************************************************
-*/
+/************************************************* 
+@Description:通过RC调节内部RC,MCU提供标准的时钟
+@Input:无
+@Output:无
+@Return:无
+*************************************************/ 
 s8 as3933CalibrateRCOViaSPI (void)
 {
 #ifdef SPI_RCO
 //    extern void asmFunction(void);   // located in as3933_helper.s
     u8 outbuf;
-		u32 i;
-		u8 regVal;
-//	  u8 retVal;
-//    spiInitialize(SPI1, &spi1Config);
+	u32 i;
+	u8 regVal;
+	outbuf = 0xC0 | (Calib_RCosc & 0x3F);   // command mode
+	AS3933_CS_Set;//CS = 1;
+	SPI_RW(outbuf);
 
-//    outbuf = 0xC0 | (Calib_RCosc & 0x3F);   // command mode
-//		AS3933_CS_Set;   // set CS
-//    spiTransferNBytes(SPI1, &outbuf, NULL, 1, TRUE);
-		outbuf = 0xC0 | (Calib_RCosc & 0x3F);   // command mode
-		AS3933_CS_Set;//CS = 1;
-		SPI_RW(outbuf);
-	
-		for(i=0;i<70;i++)
-		{
-			nrf_delay_us(16);
-			AS3933_SCLK_Set;
-			nrf_delay_us(16);
-			AS3933_SCLK_Clr;
-		}
-		as3933ReadRegister(0x0e, &regVal);
-   
-//    /* free SCK1 pin to have GPIO access to it */
-//    RPOR5bits.RP11R = 0;
-//    REFERENCE_CLOCK_PIN = 0;
-//    //LATBbits = 0;
+	for(i=0;i<70;i++)
+	{
+		nrf_delay_us(16);
+		AS3933_SCLK_Set;
+		nrf_delay_us(16);
+		AS3933_SCLK_Clr;
+	}
+	as3933ReadRegister(0x0e, &regVal);
 
-//    /* disable interrupts here. we must not get interrupted */
-//    IRQ_INC_DISABLE();
-
-//    // send 32.768 kHz reference clock on SCL
-//    // XXX: assume we are running on 16 MHz
-//    asmFunction();
-      
-
-
-//    /* enable interrupts again */
-//    IRQ_DEC_ENABLE();
-
-//    CS = 0;   // clear CS
-
-//    spiDeinitialize(SPI1);
-
-//    /* route pin RP11 (RB11 / Pin 19) to SCK1OUT */
-//    RPOR5bits.RP11R = 8;
 #endif
     return ERR_NONE;
 }
 
-/*
-******************************************************************************
-* 获取信号强度
-******************************************************************************
-*/
+
+/************************************************* 
+@Description:获取信号强度
+@Input:无
+@Output:无
+@Return:无
+*************************************************/ 
 s8 as3933GetStrongestRssi(u8 *rssiX,u8 *rssiY,u8 *rssiZ)
 {
     u8 rssiMax;   // rssi is only 5 bit, so signed data type is ok
@@ -518,6 +541,7 @@ s8 as3933TuneCapacitors(u8 capacitor)
 	as3933WriteRegister(16, 1 << capacitor);   // Connects LFxP to the LCO (display on DAT pin)
 	as3933ReadRegister(16, &test_reg);
 	retVal = ERR_BUSY;
+	
 	while (retVal == ERR_BUSY)   // we start the calibration
 	{
 		
@@ -622,10 +646,12 @@ s8 as3933TuneCapacitors(u8 capacitor)
 *************************************************/ 
 s8 as3933AntennaTuning (void)
 {
-   u8 retVal = 0;
-   as3933TuneCapacitors(0);//通道1
-   as3933TuneCapacitors(2);//通道3 
-   return retVal;
+	u8 retVal = 0;
+	NRF_GPIO->PIN_CNF[AS3933_DAT_PIN_NUM]=IO_INPUT;	//AS3933-DAT
+	as3933TuneCapacitors(0);//通道1
+	as3933TuneCapacitors(2);//通道3 
+	NRF_GPIO->PIN_CNF[AS3933_DAT_PIN_NUM]=IO_LP_State;	//低功耗
+	return retVal;
 }
 
 #else 
@@ -847,6 +873,7 @@ const uint16_t AS3933_RCOWrong_Buf[5] = {0xCAB1,0XD6D3,0XB4ED,0XCEF3};//时钟�
 const uint16_t AS3933_FreqWrong_Buf[5] = {0xC6B5,0XC2CA,0XB4ED,0XCEF3};//频率错误
 void as3933_Wrong(uint8_t wrong)
 {
+	OLED_Init();
 	FilleScreen(COLOR_BLACK);
 	OLED_ShowString(0,0,"AS3933:",ascii_1608);
 	switch(wrong)
@@ -869,14 +896,7 @@ void as3933_Init(void)
 	
 	uint8_t i,as3933_j;
 
-	//IO初始化
-	NRF_GPIO->PIN_CNF[AS3933_CS_PIN_NUM]=IO_OUTPUT;	//AS3933-CS
-	NRF_GPIO->PIN_CNF[AS3933_SCLK_PIN_NUM]=IO_OUTPUT;	//AS3933-SCL
-	NRF_GPIO->PIN_CNF[AS3933_SDI_PIN_NUM]=IO_OUTPUT;	//AS3933-SDI
-	NRF_GPIO->PIN_CNF[AS3933_SDO_PIN_NUM]=IO_INPUT_Pulldown;	//AS3933-SDO, pull down
-	NRF_GPIO->PIN_CNF[AS3933_DAT_PIN_NUM]=IO_INPUT_Pulldown;	//AS3933-DAT, pull down
-	NRF_GPIO->PIN_CNF[AS3933_CLDAT_PIN_NUM]=IO_INPUT_Pulldown;	//AS3933-CL, pull down
-	NRF_GPIO->PIN_CNF[AS3933_WAKE_PIN_NUM]=0x020000;//AS3933-WAKE, sense for high level, no pull
+	as3933IoInit();
     /* initialize the AS3933 wakeup receiver */
     if (as3933Initialize() < 0)
     {
@@ -908,12 +928,10 @@ void as3933_Init(void)
 //		as3933TuneResults[1].resonanceFrequencyOrig/1000;
 //		as3933TuneResults[2].resonanceFrequencyOrig/1000;
 		as3933_Wrong(3);
-		
 	}
+	
 }
-/*--------------------------------------------------------
-数据采集
---------------------------------------------------------*/
+
 /************************************************* 
 @Description:使能CL_DAT中断
 @Input:无

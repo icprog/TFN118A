@@ -4,6 +4,7 @@
 #include "Debug_log.h"
 #include "nrf_delay.h"
 #include "as3933.h"
+#include "oled.h"
 #define rtc_interval 1  //单位s
 #define rtc_base  32767//((32768*rtc_interval) - 1)
 
@@ -389,6 +390,8 @@ void app_init(void)
 	#endif
 	debug_printf("TFN118A Start初始化\r\n");
 	SystemParaInit();
+	as3933_Init();
+	OLED_Init();
 	motor_init();//震动电机初始化	
 	Radio_Init();//射频初始化
 	rtc0_init();//rtc初始化
