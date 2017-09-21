@@ -5,8 +5,8 @@
 #include "nrf_delay.h"
 #include "as3933.h"
 #include "oled.h"
-#define rtc_interval 1  //单位s
-#define rtc_base  32767//((32768*rtc_interval) - 1)
+//#define rtc_interval 1  //单位s
+
 
 
 bat_typedef battery;//电池电量
@@ -142,7 +142,7 @@ void rtc_update_interval(void)
 {
 	new_rtc_base = rtc_base - advDelay;//减去随机数
 	advDelay = random_vector_generate();//0~255 0~7.65ms
-	NRF_RTC0->CC[0] = new_rtc_base + advDelay;//每次与标准事件只相差随机数
+	NRF_RTC0->CC[0] = new_rtc_base + advDelay;//每次与标准时间只相差随机数
 }
 /************************************************* 
 @Description:启动外部晶振
@@ -390,7 +390,7 @@ void app_init(void)
 	#endif
 	debug_printf("TFN118A Start初始化\r\n");
 	SystemParaInit();
-	as3933_Init();
+//	as3933_Init();
 	OLED_Init();
 	motor_init();//震动电机初始化	
 	Radio_Init();//射频初始化

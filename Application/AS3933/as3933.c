@@ -55,13 +55,14 @@ volatile u8 as3940LfSampleActive;
 u32 baseStationID;//边界管理器ID
 extern TAG_Sned_Typedef TAG_Sned;//发送次数
 
-
+BASE_Typedef BASE;//
 #ifdef AS3933_DEBUG_RSSI			//显示信号强度
 #define AS3933_NUM_TOTAL_WAKEUPS    256
 u16 as3933TotalWakeups;
 u16 as3933TotalNumRssiX;
 u16 as3933TotalNumRssiY;
 u16 as3933TotalNumRssiZ;
+
 #endif
 
 
@@ -334,33 +335,28 @@ s8 as3933CalibrateRCOViaSPI (void)
 @Output:无
 @Return:无
 *************************************************/ 
-s8 as3933GetStrongestRssi(u8 *rssiX,u8 *rssiY,u8 *rssiZ)
+u8 as3933GetStrongestRssi(u8 *rssiChannel1,u8 *rssiChannel3)
 {
     u8 rssiMax;   // rssi is only 5 bit, so signed data type is ok
 
-    as3933ReadRegister(10, rssiX);
-    *rssiX &= 0x1F;   // 5 bit value in register
+    as3933ReadRegister(10, rssiChannel1);
+    *rssiChannel1 &= 0x1F;   // 5 bit value in register
     //SET_DBG_BUF(rssiX);
 
-    as3933ReadRegister(11, rssiY);
-    *rssiY &= 0x1F;   // 5 bit value in register
-    //SET_DBG_BUF(rssiY);
 
-    as3933ReadRegister(12, rssiZ);
-    *rssiZ &= 0x1F;   // 5 bit value in register
+    as3933ReadRegister(12, rssiChannel3);
+    *rssiChannel3 &= 0x1F;   // 5 bit value in register
     //SET_DBG_BUF(rssiZ);
 
     as3933SendCommand(clear_wake);
     // calculate strongest RSSI
-    rssiMax = MAX(*rssiX, *rssiY);
-    rssiMax = MAX(*rssiZ, rssiMax);
+    rssiMax = MAX(*rssiChannel1, *rssiChannel3);
     //SET_DBG_BUF(rssiMax);
 
 #ifdef AS3933_DEBUG_RSSI
     as3933TotalWakeups++;
-    if (rssiX) as3933TotalNumRssiX++;
-    if (rssiY) as3933TotalNumRssiY++;
-    if (rssiZ) as3933TotalNumRssiZ++;
+    if (rssiChannel1) as3933TotalNumRssiX++;
+    if (rssiChannel3) as3933TotalNumRssiY++;
     if (as3933TotalWakeups > AS3933_NUM_TOTAL_WAKEUPS)
     {
 //        while (1);
@@ -370,6 +366,43 @@ s8 as3933GetStrongestRssi(u8 *rssiX,u8 *rssiY,u8 *rssiZ)
     
     return rssiMax;
 }
+
+//u8 as3933GetStrongestRssi(u8 *rssiX,u8 *rssiY,u8 *rssiZ)
+//{
+//    u8 rssiMax;   // rssi is only 5 bit, so signed data type is ok
+
+//    as3933ReadRegister(10, rssiX);
+//    *rssiX &= 0x1F;   // 5 bit value in register
+//    //SET_DBG_BUF(rssiX);
+
+//    as3933ReadRegister(11, rssiY);
+//    *rssiY &= 0x1F;   // 5 bit value in register
+//    //SET_DBG_BUF(rssiY);
+
+//    as3933ReadRegister(12, rssiZ);
+//    *rssiZ &= 0x1F;   // 5 bit value in register
+//    //SET_DBG_BUF(rssiZ);
+
+//    as3933SendCommand(clear_wake);
+//    // calculate strongest RSSI
+//    rssiMax = MAX(*rssiX, *rssiY);
+//    rssiMax = MAX(*rssiZ, rssiMax);
+//    //SET_DBG_BUF(rssiMax);
+
+//#ifdef AS3933_DEBUG_RSSI
+//    as3933TotalWakeups++;
+//    if (rssiX) as3933TotalNumRssiX++;
+//    if (rssiY) as3933TotalNumRssiY++;
+//    if (rssiZ) as3933TotalNumRssiZ++;
+//    if (as3933TotalWakeups > AS3933_NUM_TOTAL_WAKEUPS)
+//    {
+////        while (1);
+//			as3933TotalWakeups = 0;
+//    }
+//#endif
+//    
+//    return rssiMax;
+//}
 
 
 
@@ -1012,7 +1045,9 @@ void as3933_inputChangeIsr(void)
         {
 			TAG_Sned.BaseID_Cnt = 0;
             as3940LfSampleActive = FALSE;
+			BASE.as3933MAXRSSI = as3933GetStrongestRssi(&BASE.channel1_RSSI,&BASE.channel3_RSSI);
 			DisableCLDAT_INT();//关中断
+			BASE.BaseDoor_ID[0] = as3933LfSampleData;
 			baseStationID = as3933LfSampleData;
         }
     }

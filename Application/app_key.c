@@ -21,7 +21,7 @@ uint16_t key_up_tim;//按键抬起计时
  
 #define key_double_interval 10   //400ms
 #define key_up_delay (key_double_interval*2)
-extern uint16_t Key_Alarm_Delay;
+extern Tag_Mode_Typedef Tag_Mode;//标签模式
 volatile uint8_t Key_Scan_En;//按键扫描使能标志位
 
 void Key_Func(void);//按键功能处理函数
@@ -183,7 +183,7 @@ void Get_Key_Value(void)
 			else if(!Read_KEY)
 			{
 				key_tim++;
-				if(key_tim > Key_Alarm_Delay )//长按
+				if(key_tim > Tag_Mode.Key_Alarm_Delay )//长按
 				{
 					k1.Value = long_press;
 					key_state = 2; 
@@ -224,7 +224,7 @@ void Get_Key_Value(void)
 			else if(!Read_KEY)//长按
 			{
 				key_tim++;
-				if(key_tim > Key_Alarm_Delay )//长按
+				if(key_tim > Tag_Mode.Key_Alarm_Delay )//长按
 				{
 					k1.Value = long_press;
 					key_state = 0; 

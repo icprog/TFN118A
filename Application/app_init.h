@@ -5,6 +5,9 @@
 #include "app_key.h"
 #include "radio_config.h"
 
+//rtc
+#define rtc_base  8191//((8191*rtc_interval) - 1)  1s基准时间更换成250ms 32767->8191
+#define sec_time  4
 //io定义
 
 //串口定义

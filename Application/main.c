@@ -7,7 +7,8 @@
 #include "app_radio.h"
 #include "app_msg.h"
 
-extern uint8_t rtc_flag;//定时，射频发送
+
+extern Time_Cnt_Typedef Time_Type;//定时结构
 extern MSG_Store_Typedef MSG_Store;//消息定义消息序列号0~7
 
 uint8_t rtc0_cnt;//定时器计数
@@ -78,12 +79,16 @@ void OLED_SHOW(void)
 *************************************************/ 
 void TAG_Msg_OLED_Show(void)
 {
-	Motor_Work();
-	Tag_Message_Get();//获取消息
-	OLED_Init();
-	OLED_SHOW_MSG(0,16,&MSG_Store.Tag_Msg_Buf[0][0]);
-	OLED1.OLED_PowerOn = msg1_page;
-	OLED1.OLED_TimeCnt = 0;
+	if(1 == MSG_Store.New_Msg_Flag)
+	{
+		MSG_Store.New_Msg_Flag = 0;
+		Motor_Work();
+		Tag_Message_Get();//获取消息
+		OLED_Init();
+		OLED_SHOW_MSG(0,16,&MSG_Store.Tag_Msg_Buf[0][0]);
+		OLED1.OLED_PowerOn = msg1_page;
+		OLED1.OLED_TimeCnt = 0;
+	}
 }
 #endif
 
@@ -113,13 +118,14 @@ int main(void)
 //		OLED_SHOW();//放到按键中
 		Bat_Detect();//电量采集
 		//1s定时
-		if(rtc_flag)
+		if(Time_Type.flag)
 		{
 			rtc0_cnt++;
-			rtc_flag = 0;
+			Time_Type.flag = 0;
 			test_i++;
 //			if(test_i<100)
-			Raio_Deal();//射频功能	
+			Tag_RadioDeal();//射频功能	
+			TAG_Msg_OLED_Show();
 			test_j++;
 			//OLED关屏
 			OLED1.OLED_TimeCnt++;

@@ -35,7 +35,12 @@ typedef enum {
     Sat  = 6,
     Sun  = 0
 }DAY_OF_WEEK;
-
+typedef struct
+{
+	uint8_t cnt;//RTC计时
+	uint8_t sec_cnt;//RTC秒计时
+	uint8_t flag;//定时，射频发送
+}Time_Cnt_Typedef;
 void RTC_Time_Set(uint32_t RTCtime);
 void Calendar21Century(rtc_typedef* pRTCtime);
 DAY_OF_WEEK get_day_of_week(rtc_typedef RTCTime);

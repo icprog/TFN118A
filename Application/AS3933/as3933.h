@@ -181,10 +181,18 @@ typedef struct
  *  \return #ERR_NONE : No error
  *****************************************************************************
  */
-
-
-extern s8 as3933GetStrongestRssi(u8 *rssiX,u8 *rssiY,u8 *rssiZ);
-
+#define BASE_TYPE_Pos 16
+typedef struct
+{
+	uint8_t Base_Xor;//异或
+	uint8_t Base_Data;//数据
+	uint8_t BaseDoor_ID[2];//id
+	uint8_t BaseNormal_ID[2];//ID
+	uint8_t as3933MAXRSSI;//RSSI
+	uint8_t channel1_RSSI;
+	uint8_t channel3_RSSI;
+}BASE_Typedef;
+extern u8 as3933GetStrongestRssi(u8 *rssiChannel1,u8 *rssiChannel3);
 extern s8 as3933DebugRegs (void);
 void as3933_Init(void);
 void as3933_TimeOut(void);

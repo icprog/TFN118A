@@ -15,6 +15,7 @@
 #include "app_init.h"
 
 
+Time_Cnt_Typedef Time_Type;//定时结构
 #define TEST 0
 #if TEST
 //rtc_typedef Global_Time = {0x20,0x02,0x28,0x23,0x59,0x50,0x07};  //年月日时分秒 星期 
@@ -27,7 +28,7 @@ rtc_typedef Global_Time = {0x17,0x07,0x14,0x15,0x09,0x00,0x05};  //年月日时�
 #endif
 //标签状态字
 extern TAG_STATE_Typedef TAG_STATE;//标签
-uint8_t rtc_flag;//定时，射频发送
+
 //if(1==get_uart1_ready(0xffff))
 //{
 #define BCD
@@ -397,18 +398,30 @@ void RTC_Time_Set(uint32_t RTCtime)
 @Return:无
 *************************************************/ 
 extern OLED_Typedef OLED1;//oled
+extern Tag_Mode_Typedef Tag_Mode;//标签模式
 void RTC0_IRQHandler(void)
 {
 	if(NRF_RTC0->EVENTS_COMPARE[0])
 	{
 		NRF_RTC0->EVENTS_COMPARE[0]=0UL;	//clear event
 		NRF_RTC0->TASKS_CLEAR=1UL;	//clear count
-		rtc_update_interval();
-		rtc_flag=1;
-		Calendar21Century(&Global_Time);
-		if(Global_Time.hour == 0x00&&Global_Time.min == 00 && Global_Time.sec == 0x00)
+		//秒定时
+		Time_Type.sec_cnt++;
+		if(Time_Type.sec_cnt == sec_time)
 		{
-			TAG_STATE.State_Update_Time = Time_Update;
+			Time_Type.sec_cnt = 0;
+			Calendar21Century(&Global_Time);
+//			if(Global_Time.hour == 0x00&&Global_Time.min == 00 && Global_Time.sec == 0x00)
+//			{
+//				TAG_STATE.State_Update_Time = Time_Update;
+//			}			
+		}
+		Time_Type.cnt++;
+		if(Time_Type.cnt >= Tag_Mode.Send_Period)
+		{
+			Time_Type.cnt = 0;
+			rtc_update_interval();//减少碰撞次数
+			Time_Type.flag=1;			
 		}
 	}
 }
