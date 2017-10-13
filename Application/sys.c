@@ -49,6 +49,27 @@ uint8_t Get_Xor(u8 *src,u16 size)
 	return temp;
 }
 
+/*
+@Description:异或检查
+@Input:src:原数组，长度
+@Output:
+@Return:无
+*/
+uint8_t Xor_Check(uint8_t *src,uint8_t size)
+{
+	uint8_t sum=0;
+	uint8_t i;
+	
+	for(i = 0;i<size;i++)
+	{
+		sum ^= *(src+i);
+	}
+	if(sum == 0)
+		return TRUE;
+	else
+		return FALSE;
+}
+
 /************************************************* 
 @Description:4个数去掉最大值，最小值，然后取平均。
 @Input:无
@@ -70,7 +91,7 @@ uint16_t average(u16* data)
 	}
 	sum-=min;
 	sum-=max;
-	sum = sum>>2;
+	sum = sum>>1;
 	average1 = sum;
 	return average1;
 }

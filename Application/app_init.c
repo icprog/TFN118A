@@ -157,7 +157,8 @@ void xosc_hfclk_start(void)
 	{
 		/*clear event*/
 		NRF_CLOCK->EVENTS_HFCLKSTARTED = 0;
-		/* Start 16 MHz crystal oscillator */		
+		/* Start 16 MHz crystal oscillator */	
+		NRF_CLOCK->XTALFREQ=0xffUL;		
 		NRF_CLOCK->TASKS_HFCLKSTART = 1;
 
 		/* Wait for the external oscillator to start up */
@@ -390,7 +391,7 @@ void app_init(void)
 	#endif
 	debug_printf("TFN118A Start初始化\r\n");
 	SystemParaInit();
-//	as3933_Init();
+	as3933_Init();
 	OLED_Init();
 	motor_init();//震动电机初始化	
 	Radio_Init();//射频初始化
@@ -420,6 +421,7 @@ void Motor_Work(void)
 *************************************************/ 
 uint8_t Port_IT_KEY;//按键
 uint8_t Port_IT_CHR;
+uint8_t CLK_IT;
 void GPIOTE_IRQHandler(void)
 {
 	if(NRF_GPIOTE->EVENTS_PORT)
@@ -439,11 +441,13 @@ void GPIOTE_IRQHandler(void)
 			Port_IT_KEY++;
 			GPIO_IntSource.Key_Int = 1;
 		}
-//		as3933_wakeupIsr();
+		as3933_wakeupIsr();
 	}
 	else if(NRF_GPIOTE->EVENTS_IN[0])
 	{
 		NRF_GPIOTE->EVENTS_IN[0] = 0;
+		CLK_IT++;
+		as3933_inputChangeIsr();
 	}
 }
 

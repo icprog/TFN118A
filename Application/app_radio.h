@@ -69,7 +69,7 @@ typedef struct
 	uint8_t radio_run_channel;//射频运行通道 
 }Radio_State_Typedef;
 
-
+extern void radio_on(void);
 extern void radio_pwr(uint8_t txpower);
 extern void Tag_RadioDeal(void);//射频周期发送
 void Radio_Period_Send(uint8_t cmdflag,uint8_t winflag,uint8_t wait_send_finish);

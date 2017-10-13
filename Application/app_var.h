@@ -362,10 +362,14 @@ PAYLOAD长度 TID+RID+CMD+DATA+XOR = 4+4+1+6+16+1 = 32
 #define CMD_IDX				TAG_SER_IDX//3
 #define CMD_PARA_IDX        (RADIO_HEAD_LENGTH + PYLOAD_XOR_LENGTH + RADIO_CMD_LENGTH + RADIO_TID_LENGTH + RADIO_RID_LENGTH )//14
 //文件操作索引号
-#define FILE_MODE_IDX (CMD_PARA_IDX+1)
-#define FILE_OFFSET_IDX (CMD_PARA_IDX+2)
-#define FILE_LENGTH_IDX (CMD_PARA_IDX+3)
-#define FILE_WDATA_IDX (CMD_PARA_IDX+4)			
+#define FILE_MODE_OFFSET 1
+#define FILE_OSET_OFFSET 2
+#define FILE_LEN_OFFSET 3
+#define FILE_WDATA_OFFSET 4
+#define FILE_MODE_IDX (CMD_PARA_IDX+FILE_MODE_OFFSET)
+#define FILE_OFFSET_IDX (CMD_PARA_IDX+FILE_OSET_OFFSET)
+#define FILE_LENGTH_IDX (CMD_PARA_IDX+FILE_LEN_OFFSET)
+#define FILE_WDATA_IDX (CMD_PARA_IDX+FILE_WDATA_OFFSET)			
 
 //命令
 typedef enum
@@ -501,9 +505,9 @@ typedef enum
 //函数
 void SystemParaInit(void);
 void UpdateRunPara(void);
-uint8_t Read_Para(File_Typedef f1_para,uint8_t *p_packet);
-uint8_t Write_Para(File_Typedef f1_para,uint8_t *p_packet);
-uint8_t Erase_Para(File_Typedef f1_para,uint8_t *p_packet);
+uint16_t Read_Para(File_Typedef f1_para,uint8_t *para_src,uint8_t *para_dest);
+uint16_t Write_Para(File_Typedef f1_para,uint8_t *para_src);
+uint16_t Erase_Para(File_Typedef f1_para);
 #if 0
 uint8_t Read_Record(uint8_t *p_packet);
 uint8_t Write_Record(uint8_t *p_packet);

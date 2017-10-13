@@ -5,6 +5,7 @@
 #include "rtc.h"
 #include "app_test.h"
 #include "as3933.h"
+#include "app_old_radio.h"
 
 /*********************************************************************
 			标签参数定义
@@ -57,7 +58,7 @@ void Tag_RadioCmdDeal(void);
 @Output:无
 @Return:无
 */
-static void radio_on(void)
+void radio_on(void)
 {
 	xosc_hfclk_start();//外部晶振起振
 }
@@ -148,8 +149,10 @@ void Message_Radio_Rx(uint8_t times)
 void Tag_RadioDeal(void)
 {
 	static uint8_t wincount;
+	static uint8_t oldScount;
 	uint32_t ot;
 	wincount++;
+	oldScount++;
 	if(wincount > win_interval)//携带接收窗口
 	{
 		wincount = 0;
@@ -190,6 +193,13 @@ void Tag_RadioDeal(void)
 				{
 					Radio_Period_Send(WithoutCmd,WithoutWin,SendWait);//发送不带接收窗
 				}
+			}
+			if(oldScount>=old_send_interval)
+			{
+				oldScount = 0;
+				Radio_Old_Period_Send(SendWait);
+				Radio_Old_ReSend(old_resend_times);//重发
+				Radio_Init();
 			}
 		}
 	}
@@ -353,26 +363,7 @@ void radio_pwr(uint8_t txpower)
 	}
 }
 
-/*
-@Description:异或检查
-@Input:src:原数组，长度
-@Output:
-@Return:无
-*/
-uint8_t Xor_Check(uint8_t *src,uint8_t size)
-{
-	uint8_t sum=0;
-	uint8_t i;
-	
-	for(i = 0;i<size;i++)
-	{
-		sum ^= src[i];
-	}
-	if(sum == 0)
-		return TRUE;
-	else
-		return FALSE;
-}
+
 
 
 /*
@@ -384,7 +375,7 @@ uint8_t Xor_Check(uint8_t *src,uint8_t size)
 void Tag_RadioCmdDeal(void)
 {
 	uint8_t cmd;
-//	uint16_t cmd_state;
+	uint16_t cmd_state;
 	cmd_packet.length = 0;
 	uint32_t rtc_time;
 	// if(radio_rcvok)
@@ -403,7 +394,8 @@ void Tag_RadioCmdDeal(void)
 						f_para.mode = cmd_packet.packet[FILE_MODE_IDX];
 						f_para.offset = cmd_packet.packet[FILE_OFFSET_IDX];
 						f_para.length = cmd_packet.packet[FILE_LENGTH_IDX];
-						if(TRUE == Read_Para(f_para,cmd_packet.packet))//读文件
+						cmd_state = Read_Para(f_para,&cmd_packet.packet[CMD_PARA_IDX],&cmd_packet.packet[EXCUTE_STATE_IDX+2]);//读文件
+						if(CMD_RUN_SUCCESS == cmd_state)
 						{
 							cmd_packet.length = CMD_ACK_FIX_LENGTH + f_para.length;
 						}
@@ -413,6 +405,8 @@ void Tag_RadioCmdDeal(void)
 						}
 						cmd_packet.packet[CMD_IDX] = (RADIO_DIR_UP<<RADIO_DIR_POS)&RADIO_DIR_Msk;//上行
 						cmd_packet.packet[CMD_IDX] |= FILE_READ_CMD;//命令
+						cmd_packet.packet[EXCUTE_STATE_IDX] = cmd_state >>8;
+						cmd_packet.packet[EXCUTE_STATE_IDX+1] = cmd_state;						
 						cmd_packet.packet[RADIO_LENGTH_IDX] = cmd_packet.length;
 						cmd_packet.packet[PYLOAD_XOR_IDX] = Get_Xor(cmd_packet.packet+CMD_IDX,cmd_packet.length-1);
 						Radio_Period_Send(WithCmd,WithoutWin,SendWait);
@@ -423,11 +417,13 @@ void Tag_RadioCmdDeal(void)
 						f_para.mode = cmd_packet.packet[FILE_MODE_IDX];
 						f_para.offset = cmd_packet.packet[FILE_OFFSET_IDX];
 						f_para.length = cmd_packet.packet[FILE_LENGTH_IDX];
-						Write_Para(f_para,cmd_packet.packet);
+						cmd_state = Write_Para(f_para,&cmd_packet.packet[CMD_PARA_IDX]);
 						
 						cmd_packet.packet[CMD_IDX] = (RADIO_DIR_UP<<RADIO_DIR_POS)&RADIO_DIR_Msk;//上行
 						cmd_packet.packet[CMD_IDX] |= FILE_WRITE_CMD;//命令
 						cmd_packet.length = CMD_ACK_FIX_LENGTH;
+						cmd_packet.packet[EXCUTE_STATE_IDX] = cmd_state >>8;
+						cmd_packet.packet[EXCUTE_STATE_IDX+1] = cmd_state;
 						cmd_packet.packet[RADIO_LENGTH_IDX] = cmd_packet.length;
 						cmd_packet.packet[PYLOAD_XOR_IDX]=Get_Xor(cmd_packet.packet+CMD_IDX,cmd_packet.length-1);
 						Radio_Period_Send(WithCmd,WithoutWin,SendWait);		
@@ -436,10 +432,12 @@ void Tag_RadioCmdDeal(void)
 					case FILE_ERASE_CMD://文件擦除
 					{
 						f_para.mode = cmd_packet.packet[FILE_MODE_IDX];
-						Erase_Para(f_para,cmd_packet.packet);//擦除
+						cmd_state = Erase_Para(f_para);//擦除
 						
 						cmd_packet.packet[CMD_IDX] = (RADIO_DIR_UP<<RADIO_DIR_POS)&RADIO_DIR_Msk;//上行
 						cmd_packet.packet[CMD_IDX] |= FILE_ERASE_CMD;//命令
+						cmd_packet.packet[EXCUTE_STATE_IDX] = cmd_state >>8;
+						cmd_packet.packet[EXCUTE_STATE_IDX+1] = cmd_state;
 						cmd_packet.length = CMD_ACK_FIX_LENGTH;
 						cmd_packet.packet[RADIO_LENGTH_IDX] = cmd_packet.length;
 						cmd_packet.packet[PYLOAD_XOR_IDX]=Get_Xor(cmd_packet.packet+CMD_IDX,cmd_packet.length-1);
@@ -488,6 +486,7 @@ void Tag_RadioCmdDeal(void)
 						{
 							Radio_Work_Mode = Message_Rx; //标签切换到消息接收模式
 							RADIO_RX_OT = RADIO_MESSAGE_OT;//如果是消息命令，则延长接收窗口时间
+							//上位机下发消息前数据处理需要时间，隐含增加消息开始指令，但是不对该指令进行响应
 							if(cmd_packet.packet[RADIO_LENGTH_IDX] > MSG_CMD_LEN)
 							{
 								if(1 == Message_Deal(cmd_packet.packet))

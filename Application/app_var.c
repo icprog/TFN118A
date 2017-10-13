@@ -135,7 +135,7 @@ p_packet：射频命令指令
 数组位置	CMD_IDX			CMD_PARA_IDX	+2
 					
 *********************************************************/
-uint8_t Read_Para(File_Typedef f1_para,uint8_t *p_packet)
+uint16_t Read_Para(File_Typedef f1_para,uint8_t *para_src,uint8_t *para_dest)
 {
 	uint8_t max_length;
 	uint16_t max_offset;//最大长度、最大偏移
@@ -194,15 +194,13 @@ uint8_t Read_Para(File_Typedef f1_para,uint8_t *p_packet)
 	//命令错误
 	if(cmd_state!=CMD_RUN_SUCCESS)
 	{
-		p_packet[EXCUTE_STATE_IDX] = cmd_state>>8;
-		p_packet[EXCUTE_STATE_IDX+1] = cmd_state;
-		return FALSE;
+		return cmd_state;
 	}
 	else
 	{
-		if(f1_para.mode == FILE_MODE_RUNPARA)
+		if(f1_para.mode == FILE_MODE_RUNPARA)//读运行参数
 		{
-			my_memcpy(&p_packet[EXCUTE_STATE_IDX+2],para_record,PARA_RECORD_LEN);
+			my_memcpy(para_dest,para_record,PARA_RECORD_LEN);
 		}
 		else
 		{
@@ -226,13 +224,11 @@ uint8_t Read_Para(File_Typedef f1_para,uint8_t *p_packet)
 			{
 				nrf_addr += f1_para.offset*max_length;			
 			}
-			nrf_nvmc_read_bytes(nrf_addr, &p_packet[FILE_RDATA_IDX],f1_para.length);			
+			nrf_nvmc_read_bytes(nrf_addr, para_dest,f1_para.length);			
 		}
 
 	}
-	p_packet[EXCUTE_STATE_IDX] = cmd_state>>8;
-	p_packet[EXCUTE_STATE_IDX+1] = cmd_state;
-	return TRUE;
+	return cmd_state;
 }
 /*********************************************************
 @Description:参数检查
@@ -289,17 +285,16 @@ uint8_t para_check(uint8_t mode,uint8_t *pdata)
 @Output:
 @Return:无
 内部文件（flash）操作-读写器下发读文件命令
-定义		命令		保留 			模式	保留	保留		  		
-数组位置	CMD_IDX		CMD_PARA_IDX	+1		+2		+3		
+定义		命令		保留 			模式	偏移	长度  数据		  		
+数组位置	CMD_IDX		CMD_PARA_IDX	+1		+2		+3	  +4	
 模式：00：内部参数区 01：保留区 02用户区 03用户区
 偏移：0xff写最新记录，当记录满时，擦除所有记录
 	  0xfe写最新记录，当记录满时，不擦除所有记录
-	  
 标签应答
 定义		命令代码1字节 	执行状态2字节 	
 数组位置	CMD_IDX			EXCUTE_STATE_IDX								
 *********************************************************/
-uint8_t Write_Para(File_Typedef f1_para,uint8_t *p_packet)
+uint16_t Write_Para(File_Typedef f1_para,uint8_t *para_src)
 {
 	uint8_t max_length;
 	uint16_t max_offset;//最大长度、最大偏移
@@ -374,22 +369,20 @@ uint8_t Write_Para(File_Typedef f1_para,uint8_t *p_packet)
 		break;
 	}
 	//参数检查
-	if(TRUE != para_check(f1_para.mode,&p_packet[FILE_WDATA_IDX]))
+	if(TRUE != para_check(f1_para.mode,&para_src[FILE_WDATA_OFFSET]))
 	{
 		cmd_state = FILE_ERR << 8|FILE_WDATA_ERR;
 	}
 	//错误，返回
 	if(cmd_state!=CMD_RUN_SUCCESS)
 	{
-		p_packet[EXCUTE_STATE_IDX] = cmd_state>>8;
-		p_packet[EXCUTE_STATE_IDX+1] = cmd_state;
-		return FALSE;
+		return cmd_state;
 	}
 	else
 	{
-		if(f1_para.mode == FILE_MODE_RUNPARA)
+		if(f1_para.mode == FILE_MODE_RUNPARA)//运行参数
 		{
-			my_memcpy(para_record,&p_packet[FILE_WDATA_IDX],PARA_RECORD_LEN);
+			my_memcpy(para_record,&para_src[FILE_WDATA_OFFSET],PARA_RECORD_LEN);
 		}
 		else
 		{
@@ -399,19 +392,17 @@ uint8_t Write_Para(File_Typedef f1_para,uint8_t *p_packet)
 				*ROM_BaseAddr.pROM_Pos = 0;//更新最新偏移量				
 			}
 			nrf_addr += *ROM_BaseAddr.pROM_Pos*max_length;
-			nrf_nvmc_write_bytes(nrf_addr,&p_packet[FILE_WDATA_IDX],f1_para.length);
+			nrf_nvmc_write_bytes(nrf_addr,&para_src[FILE_WDATA_OFFSET],f1_para.length);
 			(*ROM_BaseAddr.pROM_Pos)++;
 			if(f1_para.mode == FILE_MODE_PARA)//更新参数
 			{
-				my_memcpy(para_record,&p_packet[FILE_WDATA_IDX],16);
+				my_memcpy(para_record,&para_src[FILE_WDATA_OFFSET],PARA_RECORD_LEN);
 				UpdateRunPara();
 			}			
 		}
 
 	}
-	p_packet[EXCUTE_STATE_IDX] = cmd_state>>8;
-	p_packet[EXCUTE_STATE_IDX+1] = cmd_state;
-	return TRUE;
+	return cmd_state;
 }
 
 
@@ -431,7 +422,7 @@ uint8_t Write_Para(File_Typedef f1_para,uint8_t *p_packet)
 定义		命令代码1字节 	执行状态2字节 	
 数组位置	CMD_IDX			EXCUTE_STATE_IDX							
 *********************************************************/
-uint8_t Erase_Para(File_Typedef f1_para,uint8_t *p_packet)
+uint16_t Erase_Para(File_Typedef f1_para)
 {
 	uint16_t cmd_state = CMD_RUN_SUCCESS;//命令状态
 	switch(f1_para.mode)
@@ -470,17 +461,13 @@ uint8_t Erase_Para(File_Typedef f1_para,uint8_t *p_packet)
 	//错误，返回
 	if(cmd_state!=CMD_RUN_SUCCESS)
 	{
-		p_packet[EXCUTE_STATE_IDX] = cmd_state>>8;
-		p_packet[EXCUTE_STATE_IDX+1] = cmd_state;
-		return FALSE;
+		return cmd_state;
 	}
 	else
 	{
-		p_packet[EXCUTE_STATE_IDX] = cmd_state>>8;
-		p_packet[EXCUTE_STATE_IDX+1] = cmd_state;
 		nrf_nvmc_page_erase(nrf_addr);
 	}
-	return TRUE;
+	return cmd_state;
 }
 
 /*********************************************************

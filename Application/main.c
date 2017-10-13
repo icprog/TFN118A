@@ -125,8 +125,8 @@ int main(void)
 			test_i++;
 //			if(test_i<100)
 			Tag_RadioDeal();//射频功能	
-			TAG_Msg_OLED_Show();
-			test_j++;
+//			TAG_Msg_OLED_Show();
+//			test_j++;
 			//OLED关屏
 			OLED1.OLED_TimeCnt++;
 			if(OLED1.OLED_TimeCnt > OLED_PowerOn_Time)

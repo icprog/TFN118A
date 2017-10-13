@@ -205,7 +205,7 @@ void as3933IoInit(void)
 	NRF_GPIO->PIN_CNF[AS3933_CS_PIN_NUM]=IO_OUTPUT;	//AS3933-CS
 	NRF_GPIO->PIN_CNF[AS3933_SCLK_PIN_NUM]=IO_OUTPUT;	//AS3933-SCL
 	NRF_GPIO->PIN_CNF[AS3933_SDI_PIN_NUM]=IO_OUTPUT;	//AS3933-SDI
-	NRF_GPIO->PIN_CNF[AS3933_SDO_PIN_NUM]=IO_INPUT_Pulldown;	//AS3933-SDO, pull down
+	NRF_GPIO->PIN_CNF[AS3933_SDO_PIN_NUM]=IO_INPUT;	//AS3933-SDO, pull down
 //	NRF_GPIO->PIN_CNF[AS3933_DAT_PIN_NUM]=IO_INPUT_Pulldown;	//AS3933-DAT, pull down
 //	NRF_GPIO->PIN_CNF[AS3933_CLDAT_PIN_NUM]=IO_INPUT_Pulldown;	//AS3933-CL, pull down
 	NRF_GPIO->PIN_CNF[AS3933_WAKE_PIN_NUM]=0x020000;//AS3933-WAKE, sense for high level, no pull
@@ -518,7 +518,7 @@ u8 as3933GetStrongestRssi(u8 *rssiChannel1,u8 *rssiChannel3)
 
 #define tim0_5ms
 #define tim0Value 20000   //20ms
-#define adjust_frq  120    //最终调谐的频率，单位K
+#define adjust_frq  125    //最终调谐的频率，单位K
 #define Single 1
 #if Single
 /************************************************* 
@@ -547,15 +547,11 @@ s8 as3933TuneCapacitors(u8 capacitor)
     as3933WriteRegister(1, shadowRegisterOne | 0x10); //使能阻尼电阻
 	msSleep(15);
 	#ifdef tim0_10ms
-		NRF_TIMER0->PRESCALER=4UL;	
-		NRF_TIMER0->MODE=TIMER_MODE_MODE_Timer;
 		cBothEdgeCount1 = adjust_frq*20;
 		tim0_cc = 10000;
 		fre_pll=50;
 	#endif
 	#ifdef tim0_5ms
-		NRF_TIMER0->PRESCALER=4UL;	
-		NRF_TIMER0->MODE=TIMER_MODE_MODE_Timer;
 		cBothEdgeCount1 = adjust_frq*10; //5ms，共有1180个边沿
 		tim0_cc = 5000;//定时器5ms
 		fre_pll=100;//采样的采样频率倍数
@@ -680,10 +676,18 @@ s8 as3933TuneCapacitors(u8 capacitor)
 s8 as3933AntennaTuning (void)
 {
 	u8 retVal = 0;
+	
 	NRF_GPIO->PIN_CNF[AS3933_DAT_PIN_NUM]=IO_INPUT;	//AS3933-DAT
+	NRF_TIMER0->PRESCALER=4UL;	
+	NRF_TIMER0->MODE=TIMER_MODE_MODE_Timer;
+	//外部晶振
+	NRF_CLOCK->XTALFREQ=0xffUL;
+	NRF_CLOCK->TASKS_HFCLKSTART=1;	
+	while(NRF_CLOCK->EVENTS_HFCLKSTARTED==0);	
 	as3933TuneCapacitors(0);//通道1
 	as3933TuneCapacitors(2);//通道3 
 	NRF_GPIO->PIN_CNF[AS3933_DAT_PIN_NUM]=IO_LP_State;	//低功耗
+	NRF_CLOCK->TASKS_HFCLKSTOP = 1;
 	return retVal;
 }
 
@@ -792,22 +796,22 @@ s8 as3933AntennaTuning (void)
 				//未添加电容时的，频率
 				if ((origFreqDone == 0) && (rawValue > 0))
 				{
-						origFreqDone = 1;
-						//rawValue*1000/(tim0Value*2)*1000
-						as3933TuneResults[capacitor].resonanceFrequencyOrig = rawValue*fre_pll;
+					origFreqDone = 1;
+					//rawValue*1000/(tim0Value*2)*1000
+					as3933TuneResults[capacitor].resonanceFrequencyOrig = rawValue*fre_pll;
 				}
 				if(rawValue > cBothEdgeCount)  //频率大
 				{
 					capacitorValue++;
 					if(capacitorValue > 0x1F)
 					{
-							retVal = ERR_START_FREQ_TOO_HIGH;   // we were not able to tune, antenna trimming out of range
-							capacitorValue = 0x1F;
-							as3933WriteRegister(17 + capacitor, capacitorValue);
+						retVal = ERR_START_FREQ_TOO_HIGH;   // we were not able to tune, antenna trimming out of range
+						capacitorValue = 0x1F;
+						as3933WriteRegister(17 + capacitor, capacitorValue);
 					}
 					else
 					{
-							as3933WriteRegister(17 + capacitor, capacitorValue);//增大电容减少频率
+						as3933WriteRegister(17 + capacitor, capacitorValue);//增大电容减少频率
 					}
 				}
 				else if(capacitorValue == 0)
@@ -826,8 +830,8 @@ s8 as3933AntennaTuning (void)
 		//添加电容之后的频率
 		if (rawValue > 0)
 		{
-				//rawValue*1000/(tim0Value*2)*1000
-				as3933TuneResults[capacitor].resonanceFrequencyTuned = rawValue*fre_pll;
+			//rawValue*1000/(tim0Value*2)*1000
+			as3933TuneResults[capacitor].resonanceFrequencyTuned = rawValue*fre_pll;
 		}
 		as3933TuneResults[capacitor].capacitance  = capacitorValue;
 		as3933TuneResults[capacitor].returnValue  = retVal;
@@ -955,7 +959,7 @@ void as3933_Init(void)
 			as3933_j++;
         }
     }
-	if(as3933_j>1)
+	if(as3933_j>2)
 	{
 //		s3933TuneResults[0].resonanceFrequencyOrig/1000;
 //		as3933TuneResults[1].resonanceFrequencyOrig/1000;
@@ -973,7 +977,8 @@ void as3933_Init(void)
 *************************************************/ 
 void EnableCLDAT_INT(void)
 {
-	NRF_GPIO->PIN_CNF[AS3933_CLDAT_PIN_NUM]=0X00000000;	//配置成输入
+	NRF_GPIO->PIN_CNF[AS3933_CLDAT_PIN_NUM]=IO_INPUT;	//配置成输入
+	NRF_GPIO->PIN_CNF[AS3933_DAT_PIN_NUM]=IO_INPUT;	//AS3933-DAT
 	NRF_GPIOTE->CONFIG[0] =  (GPIOTE_CONFIG_POLARITY_LoToHi << GPIOTE_CONFIG_POLARITY_Pos)
                            | (AS3933_CLDAT_PIN_NUM<< GPIOTE_CONFIG_PSEL_Pos)  
                            | (GPIOTE_CONFIG_MODE_Event << GPIOTE_CONFIG_MODE_Pos);
@@ -996,6 +1001,7 @@ void DisableCLDAT_INT(void)
 	NRF_GPIOTE->CONFIG[0] =  0x0;
 	NRF_GPIOTE->EVENTS_IN[0] = 0;
 	NRF_GPIOTE->INTENCLR = 	GPIOTE_INTENSET_IN0_Msk;
+	NRF_GPIO->PIN_CNF[AS3933_DAT_PIN_NUM]=IO_LP_State;	//低功耗
 }
 /************************************************* 
 @Description:使能CL_DAT中断，上升沿采集数据
@@ -1025,6 +1031,9 @@ s8 as3933SampleData (u32 * sampleData)
 @Output:
 @Return:无
 *************************************************/ 
+uint32_t as3933_it;
+uint32_t as3933_it_ok;
+extern GPIO_IntSource_Typedef GPIO_IntSource;
 void as3933_inputChangeIsr(void)
 {
     /*
@@ -1032,23 +1041,35 @@ void as3933_inputChangeIsr(void)
      * data can be sampled on rising edge -> when pin is high take the data from
      * the
      */
-    if (Read_AS3933_DAT)
+    if (Read_AS3933_CLDAT)
     {
+		
         if (as3933LfSampleBitCount < AS3933_NUM_BITS_TO_SAMPLE)
         {
             as3933LfSampleData <<= 1;
             as3933LfCurrentBit = (Read_AS3933_DAT ? 1 : 0);
             as3933LfSampleData |= as3933LfCurrentBit;
             as3933LfSampleBitCount++;
+			if(AS3933_NUM_BITS_TO_SAMPLE == as3933LfSampleBitCount)
+			{
+				as3933_it++;
+				TAG_Sned.BaseID_Cnt = 0;			
+				BASE.as3933MAXRSSI = as3933GetStrongestRssi(&BASE.channel1_RSSI,&BASE.channel3_RSSI);
+				DisableCLDAT_INT();//关中断
+				if(0 == GPIO_IntSource.Key_Int)
+					rtc1_deinit();//清除超时中断
+				if(TRUE == Xor_Check((uint8_t*)&as3933LfSampleData,4))
+				{
+					BASE.BaseDoor_ID[0] = as3933LfSampleData;
+					baseStationID = as3933LfSampleData;
+					as3933_it_ok++;
+
+				}
+			}
         }
         else
-        {
-			TAG_Sned.BaseID_Cnt = 0;
+        {	
             as3940LfSampleActive = FALSE;
-			BASE.as3933MAXRSSI = as3933GetStrongestRssi(&BASE.channel1_RSSI,&BASE.channel3_RSSI);
-			DisableCLDAT_INT();//关中断
-			BASE.BaseDoor_ID[0] = as3933LfSampleData;
-			baseStationID = as3933LfSampleData;
         }
     }
     else
@@ -1068,9 +1089,10 @@ void as3933_inputChangeIsr(void)
 @Output:
 @Return:无
 *************************************************/ 
-extern GPIO_IntSource_Typedef GPIO_IntSource;
+
 uint8_t as3933_cnt;//超时计数
 #define as3933_cnt_const 2
+uint8_t Port_IT_3933;
 void as3933_wakeupIsr(void)
 {
 	if(1 == Read_AS3933_WAKE)
@@ -1082,6 +1104,7 @@ void as3933_wakeupIsr(void)
 		GPIO_IntSource.AS3933_Wake_Int = 1;
 		as3933_cnt = 0;//开始计数
 		rtc1_init();//开始计数
+		Port_IT_3933++;
 	}
 }
 
