@@ -25,24 +25,25 @@
 #define IO_INPUT  	0X00000000
 #define IO_INPUT_Pulldown  	0X00000004
 #define IO_INPUT_Pullup  	0X0000000C
-#define Motor_Pin_Num 13
+//引脚定义app_init.h  twi_master_config.h  as3933.h GT24L24A2Y
+//电机
+#define Motor_Pin_Num 23
 #define Motor_Run() do{NRF_GPIO->OUTSET = (1 << Motor_Pin_Num);}while(0)
 #define Motor_Stop() do{NRF_GPIO->OUTCLR = (1 << Motor_Pin_Num);}while(0)
 
-#define ADC_Pin_Num ADC_CONFIG_PSEL_AnalogInput7
+#define ADC_Pin_Num ADC_CONFIG_PSEL_AnalogInput3
 //OLED
-#define OLED_PWR_Pin_Num  14 
+#define OLED_PWR_Pin_Num  24 
 #define OLED_PWR_ON() do{NRF_GPIO->OUTSET = (1 << OLED_PWR_Pin_Num);}while(0)//OLED电源开启
 #define OLED_PWR_OFF() do{NRF_GPIO->OUTCLR = (1 << OLED_PWR_Pin_Num);}while(0)//OLED电源关闭
-#define OLED_RES_Pin_Num  8
+#define OLED_RES_Pin_Num  30
 #define OLED_RES_LOW()	do{NRF_GPIO->OUTCLR = (1 << OLED_RES_Pin_Num);}while(0) //复位
 #define OLED_RES_HIGH()	do{NRF_GPIO->OUTSET = (1 << OLED_RES_Pin_Num);}while(0)
 //充电指示
-#define USB_CHR_Pin_Num  9
+#define USB_CHR_Pin_Num  18
 #define Read_CHR	((NRF_GPIO->IN >> USB_CHR_Pin_Num)&1)    //0:表示正在充电
 //按键
 #define KEY_Pin_Num		25
-//#define KEY_Pin_Num		16
 #define Read_KEY 	((NRF_GPIO->IN >> KEY_Pin_Num)&1)		//0：表示有按键按下
 #define Key_Read_Disable_Interrupt()  do {NRF_GPIO->PIN_CNF[KEY_Pin_Num] &= (~GPIO_PIN_CNF_SENSE_Msk); }while(0)
 #define Key_Read_Enable_Interrupt() do {NRF_GPIO->PIN_CNF[KEY_Pin_Num] |= (GPIO_PIN_CNF_SENSE_Low << GPIO_PIN_CNF_SENSE_Pos);}while(0)

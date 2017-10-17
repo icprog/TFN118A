@@ -21,10 +21,10 @@
 //#define spi_hard
 #ifdef spi_hard
 #else
-#define SPI_PSELSCK0              4   /*!< GPIO pin number for SPI clock (note that setting this to 31 will only work for loopback purposes as it not connected to a pin) */
-#define SPI_PSELMOSI0             7   /*!< GPIO pin number for Master Out Slave In    */
-#define SPI_PSELMISO0             5   /*!< GPIO pin number for Master In Slave Out    */
-#define SPI_PSELSS0               3   /*!< GPIO pin number for Slave Select           */
+#define SPI_PSELSCK0              16   /*!< GPIO pin number for SPI clock (note that setting this to 31 will only work for loopback purposes as it not connected to a pin) */
+#define SPI_PSELMOSI0             15   /*!< GPIO pin number for Master Out Slave In    */
+#define SPI_PSELMISO0             14   /*!< GPIO pin number for Master In Slave Out    */
+#define SPI_PSELSS0               13   /*!< GPIO pin number for Slave Select           */
 
 #define Set_SPI_CLK_H() do{NRF_GPIO->OUTSET = (1 << SPI_PSELSCK0);}while(0)
 #define Set_SPI_CLK_L() do{NRF_GPIO->OUTCLR = (1 << SPI_PSELSCK0);}while(0)

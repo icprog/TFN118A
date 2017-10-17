@@ -22,7 +22,7 @@ extern uint8_t DeviceID[4];
 MSG_Store_Typedef MSG_Store;
 extern ROM_BaseAddr_Typedef   ROM_BaseAddr;//ROM基地址定义
 //消息开始命令调用
-extern void Radio_Period_Send(uint8_t cmdflag,uint8_t winflag,uint8_t wait_send_finish);
+extern void Radio_Period_Send(uint8_t cmdflag,uint8_t Channel,uint8_t winflag,uint8_t wait_send_finish);
 //消息数量
 //消息处理
 Message_Typedef Msg_Packet;
@@ -297,7 +297,7 @@ void Reader_Msg1_Start(uint8_t* tid_src)
 	cmd_packet.packet[RADIO_LENGTH_IDX] = cmd_packet.length ;
 	//异或
 	cmd_packet.packet[PYLOAD_XOR_IDX] = Get_Xor(cmd_packet.packet+CMD_IDX,cmd_packet.length-1);//PAYLOAD-XOR
-	Radio_Period_Send(WithCmd,WithWin,SendNoWait);//配置频道下发命令
+	Radio_Period_Send(WithCmd,CONFIG_CHANNEL,WithWin,SendNoWait);//配置频道下发命令
 }
 
 

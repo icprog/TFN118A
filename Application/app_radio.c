@@ -156,7 +156,7 @@ void Tag_RadioDeal(void)
 	if(wincount > win_interval)//携带接收窗口
 	{
 		wincount = 0;
-		Radio_Period_Send(WithoutCmd,WithWin,SendWait);//发送带接收窗口
+		Radio_Period_Send(WithoutCmd,DATA_CHANNEL,WithWin,SendWait);//发送带接收窗口
 		radio_select(CONFIG_CHANNEL,RADIO_RX);
 //		while(1);
 //		debug_printf("\r\n");
@@ -185,13 +185,13 @@ void Tag_RadioDeal(void)
 		{
 			if(Active_Send == Tag_Mode.SendMode)//主动发射
 			{
-				Radio_Period_Send(WithoutCmd,WithoutWin,SendWait);//发送不带接收窗
+				Radio_Period_Send(WithoutCmd,DATA_CHANNEL,WithoutWin,SendWait);//发送不带接收窗
 			}
 			else if( Passive_Send == Tag_Mode.SendMode)//被动发射 
 			{
 				if(1 == Tag_Mode.ActivatedByBase)//被激活后发射
 				{
-					Radio_Period_Send(WithoutCmd,WithoutWin,SendWait);//发送不带接收窗
+					Radio_Period_Send(WithoutCmd,DATA_CHANNEL,WithoutWin,SendWait);//发送不带接收窗
 				}
 			}
 			if(oldScount>=old_send_interval)
@@ -221,7 +221,7 @@ void Tag_RadioDeal(void)
 @Output：无
 @Return:无
 ************************************************************/
-void Radio_Period_Send(uint8_t cmdflag,uint8_t winflag,uint8_t wait_send_finish)
+void Radio_Period_Send(uint8_t cmdflag,uint8_t Channel,uint8_t winflag,uint8_t wait_send_finish)
 {
 	uint32_t ot = 0;
 	while(1 == radio_tx_isbusy())
@@ -409,7 +409,7 @@ void Tag_RadioCmdDeal(void)
 						cmd_packet.packet[EXCUTE_STATE_IDX+1] = cmd_state;						
 						cmd_packet.packet[RADIO_LENGTH_IDX] = cmd_packet.length;
 						cmd_packet.packet[PYLOAD_XOR_IDX] = Get_Xor(cmd_packet.packet+CMD_IDX,cmd_packet.length-1);
-						Radio_Period_Send(WithCmd,WithoutWin,SendWait);
+						Radio_Period_Send(WithCmd,CONFIG_CHANNEL,WithoutWin,SendWait);
 					}
 					break;
 					case FILE_WRITE_CMD://文件写入-点对点
@@ -426,7 +426,7 @@ void Tag_RadioCmdDeal(void)
 						cmd_packet.packet[EXCUTE_STATE_IDX+1] = cmd_state;
 						cmd_packet.packet[RADIO_LENGTH_IDX] = cmd_packet.length;
 						cmd_packet.packet[PYLOAD_XOR_IDX]=Get_Xor(cmd_packet.packet+CMD_IDX,cmd_packet.length-1);
-						Radio_Period_Send(WithCmd,WithoutWin,SendWait);		
+						Radio_Period_Send(WithCmd,CONFIG_CHANNEL,WithoutWin,SendWait);		
 					}	
 					break;
 					case FILE_ERASE_CMD://文件擦除
@@ -441,7 +441,7 @@ void Tag_RadioCmdDeal(void)
 						cmd_packet.length = CMD_ACK_FIX_LENGTH;
 						cmd_packet.packet[RADIO_LENGTH_IDX] = cmd_packet.length;
 						cmd_packet.packet[PYLOAD_XOR_IDX]=Get_Xor(cmd_packet.packet+CMD_IDX,cmd_packet.length-1);
-						Radio_Period_Send(WithCmd,WithoutWin,SendWait);							
+						Radio_Period_Send(WithCmd,CONFIG_CHANNEL,WithoutWin,SendWait);							
 					}
 					break;
 					#if 0
@@ -459,7 +459,7 @@ void Tag_RadioCmdDeal(void)
 						cmd_packet.packet[CMD_IDX] |= RECORD_READ_CMD;//命令
 						cmd_packet.packet[RADIO_LENGTH_IDX] = cmd_packet.length;
 						cmd_packet.packet[PYLOAD_XOR_IDX] = Get_Xor(cmd_packet.packet+CMD_IDX,cmd_packet.length-1);
-						Radio_Period_Send(WithCmd,WithoutWin,SendWait);					
+						Radio_Period_Send(WithCmd,CONFIG_CHANNEL,WithoutWin,SendWait);					
 					}
 					break;
 					case RECORD_WRITE_CMD://写运行参数
@@ -471,7 +471,7 @@ void Tag_RadioCmdDeal(void)
 						cmd_packet.length = CMD_ACK_FIX_LENGTH;
 						cmd_packet.packet[RADIO_LENGTH_IDX] = cmd_packet.length;
 						cmd_packet.packet[PYLOAD_XOR_IDX]=Get_Xor(cmd_packet.packet+CMD_IDX,cmd_packet.length-1);
-						Radio_Period_Send(WithCmd,WithoutWin,SendWait);								
+						Radio_Period_Send(WithCmd,CONFIG_CHANNEL,WithoutWin,SendWait);								
 					}
 					break;
 					#endif

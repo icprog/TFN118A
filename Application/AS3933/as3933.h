@@ -15,13 +15,13 @@
 #include "sys.h"
 
 /*------------AS3933------------*/
-#define AS3933_CS_PIN_NUM 30     //CS OUT
-#define AS3933_SCLK_PIN_NUM 4    //SCL OUT
-#define AS3933_SDI_PIN_NUM 5    //SDI-MOSI OUT
-#define AS3933_SDO_PIN_NUM 7    //SDO-MISO in/cs低，处于三态
-#define AS3933_DAT_PIN_NUM 1    //DAT IN
-#define AS3933_CLDAT_PIN_NUM 0  //CL_DAT 
-#define AS3933_WAKE_PIN_NUM 2
+#define AS3933_CS_PIN_NUM 6     //CS OUT
+#define AS3933_SCLK_PIN_NUM 5    //SCL OUT
+#define AS3933_SDI_PIN_NUM 4    //SDI-MOSI OUT
+#define AS3933_SDO_PIN_NUM 3    //SDO-MISO in/cs低，处于三态
+#define AS3933_DAT_PIN_NUM 8    //DAT IN
+#define AS3933_CLDAT_PIN_NUM 7  //CL_DAT 
+#define AS3933_WAKE_PIN_NUM 9
 
 //	#define AS3933_CS_PIN_NUM 0     //CS OUT
 //	#define AS3933_SCLK_PIN_NUM 30    //SCL OUT
@@ -46,12 +46,12 @@
 //#include "platform.h"
 
 
-#define OLED_PWR_Pin_Num  14 
-#define OLED_PWR_ON() do{NRF_GPIO->OUTSET = (1 << OLED_PWR_Pin_Num);}while(0)//OLED电源开启
-#define OLED_PWR_OFF() do{NRF_GPIO->OUTCLR = (1 << OLED_PWR_Pin_Num);}while(0)//OLED电源关闭
-#define OLED_RES_Pin_Num  8
-#define OLED_RES_LOW()	do{NRF_GPIO->OUTCLR = (1 << OLED_RES_Pin_Num);}while(0) //复位
-#define OLED_RES_HIGH()	do{NRF_GPIO->OUTSET = (1 << OLED_RES_Pin_Num);}while(0)
+//#define OLED_PWR_Pin_Num  14 
+//#define OLED_PWR_ON() do{NRF_GPIO->OUTSET = (1 << OLED_PWR_Pin_Num);}while(0)//OLED电源开启
+//#define OLED_PWR_OFF() do{NRF_GPIO->OUTCLR = (1 << OLED_PWR_Pin_Num);}while(0)//OLED电源关闭
+//#define OLED_RES_Pin_Num  8
+//#define OLED_RES_LOW()	do{NRF_GPIO->OUTCLR = (1 << OLED_RES_Pin_Num);}while(0) //复位
+//#define OLED_RES_HIGH()	do{NRF_GPIO->OUTSET = (1 << OLED_RES_Pin_Num);}while(0)
 
 
 /* AS3933 Internal Register Address  (Please refer to AS3933 Specifications) */
