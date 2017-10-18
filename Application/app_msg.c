@@ -191,13 +191,24 @@ u8 Msg_RFinish_Check(uint8_t *pCheck)
 		return FALSE;
 }
 
-
+///************************************************* 
+//@Description:标签-消息开始
+//@Input: 
+//@Output:1:
+//@Return:无
+//*************************************************/ 
+//void Tag_Message_Start(void)
+//{
+//	
+//}
+ 
 /************************************************* 
 @Description:标签-消息处理
 @Input:p_mpacket射频数据
 @Output:1:消息接收完成
 @Return:无
 *************************************************/ 
+#define Tagret_Msg_Seq 0x00 //指定消息发送时，编号为0x00
 u16 Message_Deal(uint8_t *p_mpacket)
 {
 //	u16 cmd_state;
@@ -205,9 +216,17 @@ u16 Message_Deal(uint8_t *p_mpacket)
 	MSG_Store.R_MSG1_Seq = ((p_mpacket[CMD_PARA_IDX] & READER_MSG_SEQ_Msk)>>READER_MSG_SEQ_Pos);//获取下发的消息序号
 	Msg_Packet.PKT_CUR_NUM = ((p_mpacket[CMD_PARA_IDX+1]&PKT_CUR_NUM_Msk)>>PKT_CUR_NUM_Pos);
 	Msg_Packet.PKT_MAX_NUM = ((p_mpacket[CMD_PARA_IDX+1]&PKT_MAX_NUM_Msk)>>PKT_MAX_NUM_Pos);
-	if(MSG_Store.R_MSG1_Seq_Pre!=MSG_Store.R_MSG1_Seq)//当消息序号不同时，清空消息内容长度
+	if(MSG_Store.R_MSG1_Seq == Tagret_Msg_Seq)//指定消息下发时
 	{
-		MSG_Packet_ReSet();
+		if(0==Msg_Packet.PKT_CUR_NUM)//收到第一包数据，清空分包标志位
+		{
+			MSG_Packet_ReSet();//清空分包指示
+			memcpy(Msg_Packet.MSG_PUSH_RID,p_mpacket+READER_ID_IDX,RADIO_RID_LENGTH);//复制接收器ID			
+		}
+	}
+	else if(MSG_Store.R_MSG1_Seq_Pre!=MSG_Store.R_MSG1_Seq)//当消息序号不同时，清空消息内容长度
+	{
+		MSG_Packet_ReSet();//清空分包指示
 		memcpy(Msg_Packet.MSG_PUSH_RID,p_mpacket+READER_ID_IDX,RADIO_RID_LENGTH);//复制接收器ID
 		MSG_Store.R_MSG1_Seq_Pre = MSG_Store.R_MSG1_Seq;
 	}
