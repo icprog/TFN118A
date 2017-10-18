@@ -466,6 +466,7 @@ uint16_t Erase_Para(File_Typedef f1_para)
 	else
 	{
 		nrf_nvmc_page_erase(nrf_addr);
+		*ROM_BaseAddr.pROM_Pos = 0;//更新最新偏移量	
 	}
 	return cmd_state;
 }
