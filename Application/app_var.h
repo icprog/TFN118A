@@ -61,7 +61,7 @@ typedef struct
 #define RADIO_TX										1
 //默认射频频道
 #define RADIO_ADDRESS_H 0XE1
-#define RADIO_ADDRESS_L 0XE3E76D5A
+#define RADIO_ADDRESS_L 0XE3E70000
 #define RADIO_CHANNEL_DATA						20
 #define RADIO_CHANNEL_CONFIG					50
 
@@ -85,7 +85,7 @@ typedef struct
 //长度
 #define RADIO_TID_LENGTH 5
 #define RADIO_RID_LENGTH 5
-#define RADIO_CMD_LENGTH 1
+#define RADIO_CMD_LENGTH 1   //RADIO_SEQ_LENGTH	
 
 //字节索引号
 #define TAG_SER_IDX										(PAYLOAD_BASE_IDX)  //流水号
@@ -271,21 +271,48 @@ typedef enum
 /********************************************
 					读写器
 ********************************************/
+//读写器收集标签
+//自动上报固定长度(PYLOAD_XOR_LENGTH + RADIO_SEQ_LENGTH + RADIO_TID_LENGTH +状态+版本信息)
+//1+1+5+1+1
+#define TAG_REPORTFIX_LENGTH 	9	
 
 //标签记录
-#define Sensor_Data_Length 7
-#define CAPACITY 200	//标签容量 
+#define Sensor_Data_Length 8
+#define INFO_TYPE_LEN 9
+#define CAPACITY 1	//标签容量 
 typedef struct
 {
 	uint8_t TID[RADIO_TID_LENGTH];//标签ID
+	uint8_t StateSeq;//状态流水
 	uint8_t State;//标签状态
 	uint8_t RSSI;//信号强度
 	uint8_t LeaveTime;//离开时间
-	uint8_t VER;//版本信息	
+	uint8_t PosVer;//定位和版本信息	
 	uint8_t Sensor_Type;//传感类型
 	uint8_t Sensor_Data[Sensor_Data_Length];//传感数据，指示消息类型
-	
 }TID_Typedef;
+//不同类型标签长度
+typedef enum
+{
+	tag_same_len = 11,
+	tag_len1 = 11,
+	tag_len2 = 16,
+	tag_len3 = 18,
+	tag_school_len = 17,
+}tag_len_typedef;
+//不同类型，标签类型字
+typedef enum
+{
+	tag_type1 = 16,
+	tag_type2 = 17,
+	tag_type3 = 18,
+	tag_school = 19
+}tag_type_typedef;
+
+
+//定位信息
+#define TAG_IN_Msk 0x40  //标签进入
+#define TAG_OUT_Msk 0x80  //标签离开
 //读写器
 //读写器内部参数
 typedef struct
@@ -423,8 +450,8 @@ typedef enum
 typedef enum 
 {
 	FILE_MODE_ERR=0X00,//操作区不存在
-	FILE_BODER_ERR=0X01,//超出边界，长度/读偏移量超出
-	FILE_WOFFSET_ERR=0X02,//写偏移错误
+	FILE_LENGTH_ERR=0X01,//超出边界，长度/读偏移量超出
+	FILE_OFFSET_ERR=0X02,//写偏移错误
 	FILE_WDATA_ERR=0X03,    //数据错误
 	FILE_FULL_ERR=0X04 //记录满
 }ERROR_L_Typedef;

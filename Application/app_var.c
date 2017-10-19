@@ -119,6 +119,56 @@ void UpdateRunPara(void)
 }
 
 
+
+/*********************************************************
+@Description:参数检查
+@Input:state : 
+@Output:
+@Return:无
+**********************************************************/
+uint8_t para_check(uint8_t mode,uint8_t *pdata)
+{
+	switch(mode)
+	{
+		case FILE_MODE_PARA://内部参数区
+		case FILE_MODE_RUNPARA://运行参数
+		{
+			if(pdata[0] > PARA_BYTE0_MAX)
+			{
+				return FALSE;
+			}
+			if(pdata[1] > PARA_BYTE1_MAX)
+			{
+				return FALSE;
+			}
+			if(pdata[2] > PARA_BYTE2_MAX)
+			{
+				return FALSE;
+			}
+			if(pdata[3] > PARA_BYTE3_MAX)
+			{
+				return FALSE;
+			}
+			if(pdata[4] > PARA_BYTE4_MAX)
+			{
+				return FALSE;
+			}
+			if(pdata[5] > PARA_BYTE5_MAX)
+			{
+				return FALSE;
+			}		
+		}			
+		break;
+		case FILE_MODE_RESERVER:
+		case FILE_MODE_USER1:
+		case FILE_MODE_USER2:
+			break;
+		default:
+			return FALSE;
+	}
+	return TRUE;
+}
+
 /*********************************************************
 @Description:文件读取
 @Input: f1_para：指示模式、记录偏移、字节数
@@ -176,7 +226,6 @@ uint16_t Read_Para(File_Typedef f1_para,uint8_t *para_src,uint8_t *para_dest)
 		break; 
 		case FILE_MODE_RUNPARA://运行参数区
 		{
-			max_offset = 1;
 			max_length = PARA_RECORD_LEN;
 		}
 		break;
@@ -186,11 +235,20 @@ uint16_t Read_Para(File_Typedef f1_para,uint8_t *para_src,uint8_t *para_dest)
 		}
 		break;
 	}
-	//长度和偏移量边界检查
-	if(f1_para.length>max_length || (f1_para.offset>=max_offset && f1_para.offset<FILE_OFFSET_RNEW))
+	//长度检查
+	if(f1_para.length>max_length )
 	{
-		cmd_state = FILE_ERR << 8 | FILE_BODER_ERR;
+		cmd_state = FILE_ERR << 8 | FILE_LENGTH_ERR;
+	}	
+	//偏移检查
+	if(f1_para.mode != f1_para.length)
+	{
+		if(f1_para.offset>=max_offset && f1_para.offset<FILE_OFFSET_RNEW)
+		{
+			cmd_state = FILE_ERR << 8 | FILE_OFFSET_ERR;
+		}			
 	}
+	
 	//命令错误
 	if(cmd_state!=CMD_RUN_SUCCESS)
 	{
@@ -206,19 +264,20 @@ uint16_t Read_Para(File_Typedef f1_para,uint8_t *para_src,uint8_t *para_dest)
 		{
 			if(FILE_OFFSET_RNEW == f1_para.offset)//读取最新记录
 			{
-				#if 0
 				if(0 == *ROM_BaseAddr.pROM_Pos)//记录为空
 				{
+					nrf_addr = nrf_addr;
+					#if 0
 					if(FILE_MODE_PARA == f1_para.mode)//参数区为空，返回运行参数
 						my_memcpy(&p_packet[FILE_RDATA_IDX],para_record,f1_para.length);
+					#endif
 				}
 				else
 				{
-				#endif
 					nrf_addr += (*ROM_BaseAddr.pROM_Pos-1)*max_length;//偏移量*长度
-				#if 0
+
 				}
-				#endif
+
 			}
 			else
 			{
@@ -230,54 +289,7 @@ uint16_t Read_Para(File_Typedef f1_para,uint8_t *para_src,uint8_t *para_dest)
 	}
 	return cmd_state;
 }
-/*********************************************************
-@Description:参数检查
-@Input:state : 
-@Output:
-@Return:无
-**********************************************************/
-uint8_t para_check(uint8_t mode,uint8_t *pdata)
-{
-	switch(mode)
-	{
-		case FILE_MODE_PARA://内部参数区
-		case FILE_MODE_RUNPARA://运行参数
-		{
-			if(pdata[0] > PARA_BYTE0_MAX)
-			{
-				return FALSE;
-			}
-			if(pdata[1] > PARA_BYTE1_MAX)
-			{
-				return FALSE;
-			}
-			if(pdata[2] > PARA_BYTE2_MAX)
-			{
-				return FALSE;
-			}
-			if(pdata[3] > PARA_BYTE3_MAX)
-			{
-				return FALSE;
-			}
-			if(pdata[4] > PARA_BYTE4_MAX)
-			{
-				return FALSE;
-			}
-			if(pdata[5] > PARA_BYTE5_MAX)
-			{
-				return FALSE;
-			}		
-		}			
-		break;
-		case FILE_MODE_RESERVER:
-		case FILE_MODE_USER1:
-		case FILE_MODE_USER2:
-			break;
-		default:
-			return FALSE;
-	}
-	return TRUE;
-}
+
 
 /*********************************************************
 @Description:文件写入
@@ -335,7 +347,6 @@ uint16_t Write_Para(File_Typedef f1_para,uint8_t *para_src)
 		break;
 		case FILE_MODE_RUNPARA:
 		{
-			max_offset = 1;
 			max_length = PARA_RECORD_LEN;
 		}
 		break;
@@ -348,25 +359,28 @@ uint16_t Write_Para(File_Typedef f1_para,uint8_t *para_src)
 	//长度边界检查
 	if(f1_para.length>max_length )
 	{
-		cmd_state = FILE_ERR << 8 | FILE_BODER_ERR;
+		cmd_state = FILE_ERR << 8 | FILE_LENGTH_ERR;
 	}
-	//偏移检查
-	switch(f1_para.offset)
+	//偏移检查,除了运行区
+	if(f1_para.mode!=FILE_MODE_RUNPARA)
 	{
-		case FILE_OFFSET_WNEW:break;//写最新记录
-		case FILE_OFFSET_WNEW_NERASE:
+		switch(f1_para.offset)
 		{
-			if(*ROM_BaseAddr.pROM_Pos >= max_offset)//超出最大偏移量，不擦除
+			case FILE_OFFSET_WNEW:break;//写最新记录
+			case FILE_OFFSET_WNEW_NERASE:
 			{
-				cmd_state = FILE_ERR << 8|FILE_FULL_ERR;//记录满
+				if(*ROM_BaseAddr.pROM_Pos >= max_offset)//超出最大偏移量，不擦除
+				{
+					cmd_state = FILE_ERR << 8|FILE_FULL_ERR;//记录满
+				}
 			}
+			break;
+			default://错误
+			{
+				cmd_state = FILE_ERR << 8 | FILE_OFFSET_ERR;
+			}
+			break;
 		}
-		break;
-		default://错误
-		{
-			cmd_state = FILE_ERR << 8 | FILE_WOFFSET_ERR;
-		}
-		break;
 	}
 	//参数检查
 	if(TRUE != para_check(f1_para.mode,&para_src[FILE_WDATA_OFFSET]))
@@ -466,7 +480,7 @@ uint16_t Erase_Para(File_Typedef f1_para)
 	else
 	{
 		nrf_nvmc_page_erase(nrf_addr);
-		*ROM_BaseAddr.pROM_Pos = 0;//更新最新偏移量	
+		*ROM_BaseAddr.pROM_Pos = 0;//更新最新偏移量		
 	}
 	return cmd_state;
 }

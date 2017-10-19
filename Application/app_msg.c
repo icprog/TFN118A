@@ -203,6 +203,23 @@ u8 Msg_RFinish_Check(uint8_t *pCheck)
 //}
  
 /************************************************* 
+@Description:标签-消息接收完成
+@Input:
+@Output:
+@Return:
+*************************************************/ 
+void Tag_Msg1_End(void)
+{
+	cmd_packet.packet[CMD_IDX] = (RADIO_DIR_UP<<RADIO_DIR_POS)&RADIO_DIR_Msk;//上行
+	cmd_packet.packet[CMD_IDX] |= MSG_PUSH_CMD;//命令
+	cmd_packet.packet[EXCUTE_STATE_IDX] = CMD_RUN_SUCCESS >>8;
+	cmd_packet.packet[EXCUTE_STATE_IDX+1] = CMD_RUN_SUCCESS;						
+	cmd_packet.packet[RADIO_LENGTH_IDX] = CMD_ACK_FIX_LENGTH;
+	cmd_packet.packet[PYLOAD_XOR_IDX] = Get_Xor(cmd_packet.packet+CMD_IDX,cmd_packet.length-1);
+	Radio_Period_Send(WithCmd,CONFIG_CHANNEL,WithWin,SendNoWait);//配置频道下发命令
+}
+
+/************************************************* 
 @Description:标签-消息处理
 @Input:p_mpacket射频数据
 @Output:1:消息接收完成
@@ -249,13 +266,24 @@ u16 Message_Deal(uint8_t *p_mpacket)
 		}
 		if(TRUE == Msg_RFinish_Check(Msg_Packet.PKT_CHK))
 		{
-			//包结束，存入FLASH中
-			MSG_Store.R_MSG1_Seq = ((p_mpacket[CMD_PARA_IDX]&READER_MSG_SEQ_Msk) >> READER_MSG_SEQ_Pos);
-			MSG_Store.T_MSG1_Seq = MSG_Store.R_MSG1_Seq;//更新标签包序号
-			MSG_Store.T_MSG1_BUFF[MSG1_SEQ_IDX] = MSG_Store.T_MSG1_Seq;//存储包序号
-			MSG_Store.T_MSG1_BUFF[MSG1_LEN_IDX] = Msg_Packet.T_MSG1_ONE_LEN;//消息长度
-			MSG_Write(MSG_Store.MSG1_IDX,MSG_Store.T_MSG1_BUFF);
-			MSG_Packet_ReSet();//清空消息内容长度
+			if(MSG_Store.R_MSG1_Seq == Tagret_Msg_Seq)//指定消息下发时
+			{
+				MSG_Store.T_MSG1_BUFF[MSG1_SEQ_IDX] = MSG_Store.T_MSG1_Seq;//存储包序号
+				MSG_Store.T_MSG1_BUFF[MSG1_LEN_IDX] = Msg_Packet.T_MSG1_ONE_LEN;//消息长度
+				MSG_Write(MSG_Store.MSG1_IDX,MSG_Store.T_MSG1_BUFF);
+				MSG_Packet_ReSet();//清空消息内容长度
+				Tag_Msg1_End();//指定消息发送，接收完成时，需要回复
+			}
+			else
+			{
+				//包结束，存入FLASH中
+				MSG_Store.R_MSG1_Seq = ((p_mpacket[CMD_PARA_IDX]&READER_MSG_SEQ_Msk) >> READER_MSG_SEQ_Pos);
+				MSG_Store.T_MSG1_Seq = MSG_Store.R_MSG1_Seq;//更新标签包序号
+				MSG_Store.T_MSG1_BUFF[MSG1_SEQ_IDX] = MSG_Store.T_MSG1_Seq;//存储包序号
+				MSG_Store.T_MSG1_BUFF[MSG1_LEN_IDX] = Msg_Packet.T_MSG1_ONE_LEN;//消息长度
+				MSG_Write(MSG_Store.MSG1_IDX,MSG_Store.T_MSG1_BUFF);
+				MSG_Packet_ReSet();//清空消息内容长度
+			}
 			return 1;
 		}	
 	#if 1
