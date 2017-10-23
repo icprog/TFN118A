@@ -215,7 +215,13 @@ typedef struct
 	uint8_t AlarmClr_Mode;//0:上报10次清除 1：读写器清除
 	uint8_t THR_BASE;//低频激活信号门限
 	uint16_t Key_Alarm_Delay;//按键报警延时
+//	uint8_t WithWinFlag;//携带接收窗
+//	uint8_t WinCnt;//计数器
+	uint8_t WinPeriod;//接收窗口周期
 }Tag_Mode_Typedef;
+//接收窗口倍数
+#define TAGP_WINCNT_Pos 4
+#define TAGP_WINCNT_Msk 0xF0
 //自动上报周期
 #define TAGP_AUTOREPORT_Pos 0
 #define TAGP_AUTOREPORT_Msk 0x07

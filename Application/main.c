@@ -5,12 +5,14 @@
 #include "app_key.h"
 #include "rtc.h"
 #include "app_radio.h"
+#include "app_old_radio.h"
 #include "app_msg.h"
 
 
 extern Time_Cnt_Typedef Time_Type;//定时结构
 extern MSG_Store_Typedef MSG_Store;//消息定义消息序列号0~7
-
+extern Tag_Mode_Typedef Tag_Mode;//标签模式
+extern OLD_PARA_T  OLD_PARA;//老协议参数
 uint8_t rtc0_cnt;//定时器计数
 #define bat_chr_cycle 1 //1s采集一次
 #define bat_cycle 60 //60s采集一次
@@ -106,35 +108,37 @@ int main(void)
 	#if TEST
 	function_test();
 	#endif
-	
+	#ifdef Hard 
 	//初始电量采集
 	nrf_delay_ms(1000);
 	battery.bat_capacity = battery_check_read();//读取电量
 	RTC_Time_Set(0);//时间设置
 	OLED_SHOW_Clock();//显示时间
+	#endif
 	while(1)
 	{
 		Key_Deal();//按键
 //		OLED_SHOW();//放到按键中
 		Bat_Detect();//电量采集
-		//1s定时
-		if(Time_Type.flag)
+		if(Time_Type.sec_flag)//秒计数器
 		{
-			rtc0_cnt++;
-			Time_Type.flag = 0;
-			test_i++;
-//			if(test_i<100)
-			Tag_RadioDeal();//射频功能	
-//			TAG_Msg_OLED_Show();
-//			test_j++;
+			Time_Type.sec_flag = 0;
+			OLD_PARA.SendCnt++;
+			if(OLD_PARA.SendCnt >= old_send_interval)
+			{
+				OLD_PARA.SendCnt = 0;
+				OLD_PARA.SendEn = 1;//插播老协议
+			}
+			#ifdef Hard 
 			//OLED关屏
 			OLED1.OLED_TimeCnt++;
 			if(OLED1.OLED_TimeCnt > OLED_PowerOn_Time)
 			{
-				
 				OLED_DeInit();
 			}
+			#endif
 		}
+		Tag_RadioDeal();//射频功能	
 		__WFI();
 	}
 }

@@ -10,6 +10,8 @@
 uint8_t OldPacket[OLD_PACKET_STATIC_LENGTH];
 extern uint8_t DeviceID[5];
 extern TAG_STATE_Typedef TAG_STATE;//标签
+OLD_PARA_T  OLD_PARA;
+
 void old_radio_configure(void)
 {
     // Radio config

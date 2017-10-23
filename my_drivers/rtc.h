@@ -39,7 +39,8 @@ typedef struct
 {
 	uint8_t cnt;//RTC计时
 	uint8_t sec_cnt;//RTC秒计时
-	uint8_t flag;//定时，射频发送
+	uint8_t sec_flag;//秒定时标志位
+	uint8_t RadioSendFlag;//定时，射频发送
 }Time_Cnt_Typedef;
 void RTC_Time_Set(uint32_t RTCtime);
 void Calendar21Century(rtc_typedef* pRTCtime);

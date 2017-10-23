@@ -106,6 +106,7 @@ void UpdateRunPara(void)
 	//自动发射周期，RTC基准时间250MS
 	Tag_Mode.Send_Period = (para_record[TAGP_AUTOREPORT_IDX] & TAGP_AUTOREPORT_Msk) >> TAGP_AUTOREPORT_Pos;
 	Tag_Mode.Send_Period = 1<<Tag_Mode.Send_Period;//1 2 4 8 16 32 64 128
+	Tag_Mode.WinPeriod = (para_record[TAGP_AUTOREPORT_IDX] & TAGP_WINCNT_Msk) >> TAGP_WINCNT_Pos;
 	//发射功率
 	if( Active_Mode == Tag_Mode.WorkMode)
 		radio_pwr((para_record[TAGP_PWR_IDX] & TAGP_PWR_Msk) >> TAGP_PWR_Pos);
@@ -116,6 +117,7 @@ void UpdateRunPara(void)
 	Tag_Mode.THR_BASE = (para_record[TAGP_THRBASE_IDX] & TAGP_THRRSSI_Msk) >> TAGP_THRRSSI_Pos; 
 	//报警延时
 	Tag_Mode.Key_Alarm_Delay = ((para_record[TAGP_KEYALARM_IDX] & TAGP_KEYALARM_Msk) >> TAGP_KEYALARM_Pos)*1000/delay_interval;
+	
 }
 
 

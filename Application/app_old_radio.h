@@ -9,7 +9,11 @@
 #define OLD_TAG_STATE_IDX 									6//状态字
 #define OLD_TAG_LOWPWR_Pos									0//低电 1：低电
 #define OLD_TAG_LOWPWR_Msk									0x01
-
+typedef struct
+{
+	uint8_t SendCnt;//秒计数
+	uint8_t SendEn;//允许插播
+}OLD_PARA_T;
 void Radio_Old_Period_Send(uint8_t wait_send_finish);
 void Radio_Old_ReSend(uint8_t times);
 #endif

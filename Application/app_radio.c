@@ -13,6 +13,7 @@
 //需要修改的参数
 TAG_Sned_Typedef TAG_Sned={0xff,0,0};//发送次数
 extern Tag_Mode_Typedef Tag_Mode;//标签模式
+extern OLD_PARA_T  OLD_PARA;//老协议参数
 //射频工作模式
 extern Radio_Work_Mode_Typedef Radio_Work_Mode;//用来接收消息
 //消息显示
@@ -22,7 +23,7 @@ extern BASE_Typedef BASE;//边界管理器定义
 extern u32 baseStationID;//边界管理器ID
 //标签状态字
 volatile TAG_STATE_Typedef TAG_STATE = {0,0,0,1};//标签，时间更新
-
+extern Time_Cnt_Typedef Time_Type;//定时结构
 #ifdef LOG_ON
 #define RADIO_RX_OT_CONST 	10000000
 #define RADIO_MESSAGE_OT    20000000
@@ -148,68 +149,76 @@ void Message_Radio_Rx(uint8_t times)
 */
 void Tag_RadioDeal(void)
 {
-	static uint8_t wincount;
-	static uint8_t oldScount;
 	uint32_t ot;
-	wincount++;
-	oldScount++;
-	if(wincount > win_interval)//携带接收窗口
+	uint8_t WinCnt;	
+	if(Time_Type.RadioSendFlag)//正常射频业务
 	{
-		wincount = 0;
-		Radio_Period_Send(WithoutCmd,DATA_CHANNEL,WithWin,SendWait);//发送带接收窗口
-		radio_select(CONFIG_CHANNEL,RADIO_RX);
-//		while(1);
-//		debug_printf("\r\n");
-		ot = RADIO_RX_OT;//接收窗时间
-		while(--ot)
+		Time_Type.RadioSendFlag = 0;
+		WinCnt++;
+		if(WinCnt >= Tag_Mode.WinPeriod)//开接收窗口
 		{
-			if(Radio_State.radio_rcvok)
-				break;
-				
-		}
-		if(0 == ot)
-		{
-			debug_printf("\r\n接收超时");
-		}
-		#ifdef LOG_ON
-		if(0 == ot)
-		{
-			debug_printf("\r\n接收超时");
-		}
-		#endif
-
-	}
-	else
-	{
-		if(Active_Mode == Tag_Mode.WorkMode)//活动模式
-		{
-			if(Active_Send == Tag_Mode.SendMode)//主动发射
+			WinCnt = 0;
+			Radio_Period_Send(WithoutCmd,DATA_CHANNEL,WithWin,SendWait);//发送带接收窗口
+			radio_select(CONFIG_CHANNEL,RADIO_RX);
+	//		while(1);
+	//		debug_printf("\r\n");
+			ot = RADIO_RX_OT;//接收窗时间
+			while(--ot)
 			{
-				Radio_Period_Send(WithoutCmd,DATA_CHANNEL,WithoutWin,SendWait);//发送不带接收窗
+				if(Radio_State.radio_rcvok)
+					break;	
 			}
-			else if( Passive_Send == Tag_Mode.SendMode)//被动发射 
+			if(0 == ot)
 			{
-				if(1 == Tag_Mode.ActivatedByBase)//被激活后发射
+				debug_printf("\r\n接收超时");
+			}
+			#ifdef LOG_ON
+			if(0 == ot)
+			{
+				debug_printf("\r\n接收超时");
+			}
+			#endif			
+		}
+		else
+		{
+			if(Active_Mode == Tag_Mode.WorkMode)//活动模式
+			{
+				if(Active_Send == Tag_Mode.SendMode)//主动发射
 				{
 					Radio_Period_Send(WithoutCmd,DATA_CHANNEL,WithoutWin,SendWait);//发送不带接收窗
 				}
-			}
-			if(oldScount>=old_send_interval)
-			{
-				oldScount = 0;
-				Radio_Old_Period_Send(SendWait);
-				Radio_Old_ReSend(old_resend_times);//重发
-				Radio_Init();
-			}
+				else if( Passive_Send == Tag_Mode.SendMode)//被动发射 
+				{
+					if(1 == Tag_Mode.ActivatedByBase)//被激活后发射
+					{
+						Radio_Period_Send(WithoutCmd,DATA_CHANNEL,WithoutWin,SendWait);//发送不带接收窗
+					}
+				}
+
+			}			
+		}
+		if(Radio_State.radio_rcvok)
+		{
+			Radio_State.radio_rcvok = 0;
+			Tag_RadioCmdDeal();//命令处理
+			Message_Radio_Rx(0);//消息处理
 		}
 	}
-	if(Radio_State.radio_rcvok)
+	if(Active_Mode == Tag_Mode.WorkMode)//活动模式
 	{
-		Radio_State.radio_rcvok = 0;
-		Tag_RadioCmdDeal();//命令处理
-		Message_Radio_Rx(0);//消息处理
+		if(1 == OLD_PARA.SendEn)
+		{
+			OLD_PARA.SendEn = 0;
+			Radio_Old_Period_Send(SendWait);
+			Radio_Old_ReSend(old_resend_times);//重发
+			Radio_Init();
+		}			
 	}
-	radio_off();
+	if(NRF_RADIO->STATE!=RADIO_STATE_STATE_Disabled)
+	{
+		radio_off();
+	}
+
 }
 
 

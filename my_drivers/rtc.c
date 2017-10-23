@@ -407,9 +407,10 @@ void RTC0_IRQHandler(void)
 		NRF_RTC0->TASKS_CLEAR=1UL;	//clear count
 		//秒定时
 		Time_Type.sec_cnt++;
-		if(Time_Type.sec_cnt == sec_time)
+		if(Time_Type.sec_cnt >= sec_time)
 		{
 			Time_Type.sec_cnt = 0;
+			Time_Type.sec_flag = 1;
 			Calendar21Century(&Global_Time);
 //			if(Global_Time.hour == 0x00&&Global_Time.min == 00 && Global_Time.sec == 0x00)
 //			{
@@ -421,7 +422,7 @@ void RTC0_IRQHandler(void)
 		{
 			Time_Type.cnt = 0;
 			rtc_update_interval();//减少碰撞次数
-			Time_Type.flag=1;			
+			Time_Type.RadioSendFlag=1;			
 		}
 	}
 }

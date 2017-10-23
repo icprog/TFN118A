@@ -391,9 +391,11 @@ void app_init(void)
 	#endif
 	debug_printf("TFN118A Start初始化\r\n");
 	SystemParaInit();
+	#ifdef Hard 
 	as3933_Init();
 	OLED_Init();
 	motor_init();//震动电机初始化	
+	#endif
 	Radio_Init();//射频初始化
 	rtc0_init();//rtc初始化
 	io_interrupt_config();//充电指示、按键io初始化
